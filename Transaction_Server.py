@@ -20,8 +20,6 @@ def verify_password(provided_password: str, stored_hash: str) -> bool:
     """验证提供的密码是否与存储的哈希值匹配。"""
     return hash_password(provided_password) == stored_hash
 
-
-
 def load_users_from_json(filename: str) -> List[Dict[str, Any]]:
     """
     从JSON文件加载用户列表。
@@ -148,7 +146,7 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port):
         if found_username and 'user_id' in user_record:
             port = msg.port
             user_record['address'] = f"{user_ip}:{port}"
-            
+
             
             print(f"[服务器日志] 用户 '{found_username}' 验证成功。\n")
             response = S.SuccessLoginMsg(username = found_username, user_id=user_record['user_id'], directory="directory.json") # 需要传送通讯录数据
