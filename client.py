@@ -10,8 +10,8 @@ import Transaction_Client as T
 from serializer import serialize, deserialize
 CA_FILE = "ca.crt"
 SERVER_HOSTNAME = 'SERVER' 
-# ip_port = ("127.0.0.1", 47474) # Server's ip and port
-ip_port = ("10.122.212.156", 47474) # Server's ip and port
+ip_port = ("127.0.0.1", 47474) # Server's ip and port
+# ip_port = ("10.122.212.156", 47474) # Server's ip and port
 
 def bind_to_free_port():
     """

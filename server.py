@@ -14,13 +14,16 @@ ip_port = ("", 47474)
 
 def msg_process(ssl_connect_sock):
     try:
+        user_ip, user_port = ssl_connect_sock.getpeername()
+        print("user_ip", user_ip)
+        print("user_port", user_port)
         received_msg = T.recv_msg(ssl_connect_sock)
         if received_msg is None:
             print("客户端已断开连接。")
             return None
 
         if received_msg.tag.name == "Login":
-            reply_msg = T.handle_login(received_msg)        
+            reply_msg = T.handle_login(received_msg, user_ip, user_port)        
         
         elif received_msg.tag.name == "Register":
             reply_msg = T.handle_register(received_msg)           

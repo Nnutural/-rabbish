@@ -119,14 +119,9 @@ def handle_register(msg: S.RegisterMsg,):
     return response 
     
 
-def handle_login(msg: S.LoginMsg):
+def handle_login(msg: S.LoginMsg, user_ip, user_port):
     print("I'm in login, the listening port is {}".format(msg.port))
     '''读取json
-    1. 检查用户名是否已存在
-    2. 如果不存在，则返回失败
-    3. 如果存在，则检查密码是否正确
-    4. 如果密码正确，则返回成功
-    5. 如果密码不正确，则返回失败
     6. 更新用户在线状态，保存监听端口信息
     '''
     USER_LIST = load_users_from_json("data/users.json")
@@ -151,6 +146,10 @@ def handle_login(msg: S.LoginMsg):
     if verify_password(msg.secret, user_record.get('pass_hash', '')):
         # 更新：检查 user_id
         if found_username and 'user_id' in user_record:
+            port = msg.port
+            user_record['address'] = f"{user_ip}:{port}"
+            
+            
             print(f"[服务器日志] 用户 '{found_username}' 验证成功。\n")
             response = S.SuccessLoginMsg(username = found_username, user_id=user_record['user_id'], directory="directory.json") # 需要传送通讯录数据
             return response

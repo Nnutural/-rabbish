@@ -5,7 +5,8 @@
     "username"   : "alice",                    
     "email"      : "alice@example.com",              
     "pass_hash"  : "1f7ab0f127…",                           
-    "created_at" : "2025-06-28T10:21:12Z"                   
+    "created_at" : "2025-06-28T10:21:12Z",
+    "address"    : "127.0.0.1:10000"                 
   }
 
 
