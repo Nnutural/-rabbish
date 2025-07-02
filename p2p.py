@@ -2,6 +2,7 @@ import json
 name_status_map = {}
 
 def init_directory(ssl_connect_sock):
+    global name_status_map
     ''' 输出本地联系人列表 '''
     directionary = {}
 
@@ -18,6 +19,7 @@ def init_directory(ssl_connect_sock):
 
 
 def choose_friend(ssl_connect_sock, choice):
+    
     if choice == "exit":
         return None # 这里会直接退出程序
 
