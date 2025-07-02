@@ -17,12 +17,13 @@ for name, status in name_status_map.items():
 
 print(name_status_map.keys())
 
-choice = input("which friend do you want to send message to: ").strip()
-if choice in name_status_map.keys(): # 判断人名是否在本地联系人列表中然后判断是否在线
-    if name_status_map[choice] == "online":
-        print("=======Now you are chatting with {} =======".format(choice))
+while True:
+    choice = input("which friend do you want to send message to: ").strip()
+    if choice in name_status_map.keys(): # 判断人名是否在本地联系人列表中然后判断是否在线
+        if name_status_map[choice] == "online":
+            print("=======Now you are chatting with {} =======".format(choice))
+        else:
+            print("=======The user is offline =======".format(choice))
     else:
-        print("=======The user is offline =======".format(choice))
-else:
-    print("=======The user is not in your contact list =======".format(choice))
-    print("RECHOICE: ")
+        print("=======The user is not in your contact list =======".format(choice))
+        print("RECHOICE: ")
