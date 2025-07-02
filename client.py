@@ -63,6 +63,18 @@ def User_evnets_process(ssl_connect_sock):
         T.handle_register(ssl_connect_sock)
         return True
 
+    if inp == "logout":
+        T.handle_logout(ssl_connect_sock)
+        return True
+    
+    if inp == "directory":
+        T.handle_get_directory(ssl_connect_sock)
+        return True
+    
+    if inp == "history":
+        T.handle_get_history(ssl_connect_sock)
+        return True
+
     
 try:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
