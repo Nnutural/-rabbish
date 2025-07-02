@@ -5,6 +5,7 @@ import socket as skt
 import ssl
 import json
 import pprint
+import p2p as P
 import Transaction_Client as T
 from serializer import serialize, deserialize
 
@@ -49,70 +50,81 @@ def msg_process(ssl_connect_sock):
         print(f"登录失败: {received_msg}")
 
 def User_evnets_process(ssl_connect_sock):
-    inp = input("请输入消息 (输入 'exit' 退出): ").strip()
+    T.handle_get_directory(ssl_connect_sock) # update the directory from server
+    P.init_directory(ssl_connect_sock) # output the local directory
+    while True:
+        choice = input("which friend do you want to send message to: ").strip()
+        if choice == "exit":
+            print("客户端正在关闭...")
+            return None
 
-    if inp == "exit":
-        print("客户端正在关闭...")
-        return None
+        if choice == "logout":
+            T.handle_logout(ssl_connect_sock)
+            return True
+        
+        if choice == "history":
+            T.handle_get_history(ssl_connect_sock)
+            return True
 
-    if inp == "login":
-        T.handle_login(ssl_connect_sock)
-        return True
-
-    if inp == "register":
-        T.handle_register(ssl_connect_sock)
-        return True
-
-    if inp == "logout":
-        T.handle_logout(ssl_connect_sock)
-        return True
-    
-    if inp == "directory":
-        T.handle_get_directory(ssl_connect_sock)
-        return True
-    
-    if inp == "history":
-        T.handle_get_history(ssl_connect_sock)
-        return True
-
-    
-try:
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    
-    context.load_verify_locations(CA_FILE)
-    context.load_cert_chain(certfile = "client.crt", keyfile = "client_rsa_private.pem.unsecure")
-    context.verify_mode = ssl.CERT_REQUIRED
-
-    with skt.socket(skt.AF_INET, skt.SOCK_STREAM) as s:
-        with context.wrap_socket(s, server_hostname=SERVER_HOSTNAME) as ssl_connect_sock:
-            ssl_connect_sock.connect(ip_port)
-
-            print("--- 成功连接到服务器 ---")
-            print("服务器证书信息:")
-            pprint.pprint(ssl_connect_sock.getpeercert())
-            print("------------------------\n")
-
-            while True:
-                if User_evnets_process(ssl_connect_sock) is None:
-                    break
-                
-                if msg_process(ssl_connect_sock) is None:
-                    break
-
-except FileNotFoundError:
-    print(f"\n错误: 找不到CA证书文件 '{CA_FILE}'。")
-except ssl.SSLCertVerificationError as e:
-    print(f"\n错误: 证书验证失败! {e}")
-except ConnectionRefusedError:
-    print("错误: 连接被拒绝。服务器可能未运行或被防火墙阻止。")
-except Exception as e:
-    print(f"发生未知错误: {e}")
-
-print("客户端已关闭。")
-
+        if P.choose_friend(ssl_connect_sock, choice) is None:
+            return None
 
 def boot():
-    pass
-# link to server 
+    try:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        
+        context.load_verify_locations(CA_FILE)
+        context.load_cert_chain(certfile = "client.crt", keyfile = "client_rsa_private.pem.unsecure")
+        context.verify_mode = ssl.CERT_REQUIRED
 
-# show window
+        with skt.socket(skt.AF_INET, skt.SOCK_STREAM) as s:
+            with context.wrap_socket(s, server_hostname=SERVER_HOSTNAME) as ssl_connect_sock:
+                ssl_connect_sock.connect(ip_port)
+
+                print("--- 成功连接到服务器 ---")
+                print("服务器证书信息:")
+                pprint.pprint(ssl_connect_sock.getpeercert())
+                print("------------------------\n")
+
+                if login_screen(ssl_connect_sock):
+                    while True:
+
+                        if User_evnets_process(ssl_connect_sock) is None:
+                            break
+                        
+                        if msg_process(ssl_connect_sock) is None:
+                            break
+
+    except FileNotFoundError:
+        print(f"\n错误: 找不到CA证书文件 '{CA_FILE}'。")
+    except ssl.SSLCertVerificationError as e:
+        print(f"\n错误: 证书验证失败! {e}")
+    except ConnectionRefusedError:
+        print("错误: 连接被拒绝。服务器可能未运行或被防火墙阻止。")
+    except Exception as e:
+        print(f"发生未知错误: {e}")
+
+    print("客户端已关闭。")
+
+def login_screen(ssl_connect_sock) -> bool:
+    for _ in range(5):
+        opt = input("plesse inpu login / register: ")
+        if opt == "login":          
+            T.handle_login(ssl_connect_sock)
+            return True
+        elif opt == "register":
+            T.handle_register(ssl_connect_sock)
+            return True
+        elif opt == "exit":
+            return False
+        else:
+            print("invalid input")
+
+    return False
+
+
+
+def main():
+    boot()
+
+main()

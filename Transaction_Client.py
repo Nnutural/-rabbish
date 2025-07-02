@@ -35,6 +35,13 @@ def handle_logout(ssl_connect_sock):
 
 # User to Client to Server : when login success
 def handle_get_directory(ssl_connect_sock):
+    ''' 从服务器获取联系人列表 '''
+
+
+    ''' 将服务器返回的联系人列表更新到本地 '''
+    
+
+
     print("I'm in get directory")
 
 # User to Client to Server
