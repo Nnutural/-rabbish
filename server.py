@@ -62,7 +62,7 @@ def msg_process(ssl_connect_sock):
             reply_msg = T.handle_logout(received_msg)
 
         elif received_msg.tag.name == "GetDirectory":
-            reply_msg = T.handle_get_directory(received_msg)
+            reply_msg = T.handle_send_directory(received_msg)
 
         elif received_msg.tag.name == "GetHistory":
             reply_msg = T.handle_get_history(received_msg)

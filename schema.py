@@ -58,8 +58,10 @@ class LoginMsg:
     """C->S 登录请求 (Tag: 2)"""
     username: str
     secret: str
+    port: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.Login, init=False)
+
 
 @dataclass
 class LogoutMsg:

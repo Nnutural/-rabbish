@@ -1,6 +1,9 @@
 import json
 name_status_map = {}
 
+def p2p_listener(p2p_server_sock):
+    pass
+
 def init_directory(ssl_connect_sock):
     global name_status_map
     ''' 输出本地联系人列表 '''
@@ -26,7 +29,7 @@ def choose_friend(ssl_connect_sock, choice):
     if choice in name_status_map.keys(): # 判断人名是否在本地联系人列表中然后判断是否在线
         if name_status_map[choice] == "online":
             print("=======Now you are chatting with {} =======".format(choice))
-            return True
+
         else:
             print("=======The user is offline =======".format(choice))
             return True
@@ -34,6 +37,8 @@ def choose_friend(ssl_connect_sock, choice):
         print("=======The user is not in your contact list =======".format(choice))
         print("RECHOICE: ")
         return True
+
+    print("I'm chatting with {}".format(choice))
     '''
     ????
     提前建立连接还是等用户选择后建立连接

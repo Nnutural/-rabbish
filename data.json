@@ -6,7 +6,8 @@
       "avatar": "张",
       "status": "online",
       "preview": "周末聚会在哪里见面？",
-      "time": "11:30"
+      "time": "11:30",
+      "address": "127.0.0.1:10000"
     },
     {
       "id": 2,
@@ -14,7 +15,8 @@
       "avatar": "李",
       "status": "offline",
       "preview": "项目计划已经发给你了",
-      "time": "昨天"
+      "time": "昨天",
+      "address": "127.0.0.1:10001"
     },
     {
       "id": 3,
@@ -22,7 +24,8 @@
       "avatar": "王",
       "status": "online",
       "preview": "我大概晚上7点能到",
-      "time": "周二"
+      "time": "周二",
+      "address": "127.0.0.1:10002"
     },
     {
       "id": 4,
@@ -30,28 +33,32 @@
       "avatar": "赵",
       "status": "online",
       "preview": "你推荐的电影我看了，很棒！",
-      "time": "周一"
+      "time": "周一",
+      "address": "127.0.0.1:10003"
     },
     {
       "id": 5,
       "name": "陈七",
       "avatar": "陈",
       "status": "online",
-      "preview": "在线"
+      "preview": "在线",
+      "address": "127.0.0.1:10004"
     },
     {
       "id": 6,
       "name": "孙八",
       "avatar": "孙",
       "status": "offline",
-      "preview": "离线"
+      "preview": "离线",
+      "address": "127.0.0.1:10005"
     },
     {
       "id": 7,
       "name": "周九",
       "avatar": "周",
       "status": "online",
-      "preview": "在线"
+      "preview": "在线",
+      "address": "127.0.0.1:10006"
     }
   ],
   "messages": {

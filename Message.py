@@ -9,7 +9,7 @@ MAX = PACKET_SIZE - 4  # 2044 bytes
 class MsgTag(Enum): # 4 Bytes
     # C to S
     Registser = 1 # 注册 {username, secret, email, time}
-    Login = 2 # 登录 {username, secret, time}
+    Login = 2 # 登录 {username, secret, time, address()}
     Logout = 3 # 注销 {username, time}
     GetDirectionary = 4 # 获取通信录 {username, time}
     GetHistory = 5 # 获取聊天记录 {ChatID, data, time} (source, dest) -> ChatID, MessageID -> ChatID

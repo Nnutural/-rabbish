@@ -8,40 +8,52 @@ import pprint
 import p2p as P
 import Transaction_Client as T
 from serializer import serialize, deserialize
-
 CA_FILE = "ca.crt"
 SERVER_HOSTNAME = 'SERVER' 
-ip_port = ("127.0.0.1", 47474)
+ip_port = ("127.0.0.1", 47474) # Server's ip and port
 
-def recv_msg(ssl_connect_sock):
-    client_data_bytes = ssl_connect_sock.recv(4) # 先接收4个字节，表示数据长度
-    if not client_data_bytes:
-        print("客户端已断开连接。")
-        return None
+def bind_to_free_port():
+    """
+    创建一个socket并绑定到一个由操作系统自动分配的空闲端口。
+    返回绑定好的socket和它实际使用的端口号。
+    """
+    try:
+        # 1. 创建一个socket
+        sock = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
+        
+        # 2. 调用bind，主机地址设为 "0.0.0.0" 或 "127.0.0.1"，端口号设为 0
+        # "0.0.0.0" 表示监听所有可用的网络接口
+        sock.bind(("0.0.0.0", 0)) 
+        
+        # 3. bind之后，通过getsockname()获取操作系统实际分配的端口号
+        port = sock.getsockname()[1]
+        
+        print(f"操作系统已成功分配端口: {port}")
+        
+        return sock, port
+        
+    except Exception as e:
+        print(f"无法绑定到空闲端口: {e}")
+        return None, None
+# --- 使用 ---
+# 获取一个绑定好空闲端口的socket
+p2p_server_sock, my_p2p_port = bind_to_free_port() # 客户端的的监听端口，用于等待联系人连接
 
-    datalength = int.from_bytes(client_data_bytes, byteorder='big')
-    json_bytes = ssl_connect_sock.recv(datalength)
-    if not json_bytes:
-        return None
 
-        # 解码并反序列化未dataclass对象
-    msg_dict = json.loads(json_bytes.decode("UTF-8"))
-    received_msg = deserialize(msg_dict)
-    return received_msg
 
 def msg_process(ssl_connect_sock):
-    received_msg = recv_msg(ssl_connect_sock)
+    received_msg = T.recv_msg(ssl_connect_sock)
     if received_msg is None:
         print("客户端已断开连接。")
         return None
 
-    print(f"服务器回复: {received_msg}")
-    if received_msg.tag.name == "SuccessRegister":
-        print(f"注册成功: {received_msg}")
-        return True
+    # print(f"服务器回复: {received_msg}")
+    # if received_msg.tag.name == "SuccessRegister":
+    #     print(f"注册成功: {received_msg}")
+    #     return True
 
-    elif received_msg.tag.name == "FailRegister":
-        print(f"注册失败: {received_msg}")
+    # elif received_msg.tag.name == "FailRegister":
+    #     print(f"注册失败: {received_msg}")
 
     elif received_msg.tag.name == "SuccessLogin":
         print(f"登录成功: {received_msg}")
@@ -66,10 +78,10 @@ def User_evnets_process(ssl_connect_sock):
             T.handle_get_history(ssl_connect_sock)
             return True
 
-        if P.choose_friend(ssl_connect_sock, choice) is None:
+        if P.choose_friend(ssl_connect_sock, choice) is None: # 这一步会进入Chat
             return None
 
-def boot():
+def boot(): # TO_DO 客户端首先要确定自己的端口
     try:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         
@@ -86,7 +98,7 @@ def boot():
                 pprint.pprint(ssl_connect_sock.getpeercert())
                 print("------------------------\n")
 
-                if login_screen(ssl_connect_sock):
+                if login_screen(ssl_connect_sock, my_p2p_port):
                     while True:
 
                         if User_evnets_process(ssl_connect_sock) is None:
@@ -106,23 +118,24 @@ def boot():
 
     print("客户端已关闭。")
 
-def login_screen(ssl_connect_sock) -> bool:
+def login_screen(ssl_connect_sock, my_p2p_port) -> bool:
     for _ in range(5):
         opt = input("plesse inpu login / register: ")
         if opt == "login":          
-            T.handle_login(ssl_connect_sock)
-            return True
+            while T.handle_login(ssl_connect_sock, my_p2p_port) is None: # TO_DO 在boot()的端口和IP基础上，建立监听socket，等待联系人连接
+                return True
+
         elif opt == "register":
-            T.handle_register(ssl_connect_sock)
-            return True
+            while T.handle_register(ssl_connect_sock) is None:
+                return True
+        
         elif opt == "exit":
             return False
+
         else:
             print("invalid input")
 
     return False
-
-
 
 def main():
     boot()

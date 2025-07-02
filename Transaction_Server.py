@@ -36,8 +36,8 @@ def handle_logout(msg: S.LogoutMsg):
     print("I'm in logout")
     pass
 
-def handle_get_directory(msg: S.GetDirectoryMsg):
-    print("I'm in get directory")
+def handle_send_directory(msg: S.GetDirectoryMsg):
+    print("I'm in send directory")
     pass
 
 def handle_get_history(msg: S.GetHistoryMsg):
