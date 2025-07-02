@@ -11,52 +11,19 @@ from serializer import serialize, deserialize
 
 ip_port = ("127.0.0.1", 47474)
 
-def recv_msg(ssl_connect_sock):
-    try:
-        header_bytes = ssl_connect_sock.recv(4) # 先接收4个字节，表示数据长度
-        if not header_bytes:
-            print("客户端可能已断开连接 (header is empty)。")
-            return None
-
-        datalength = int.from_bytes(header_bytes, byteorder='big')
-        
-        # 分块接收数据，确保接收完整
-        json_bytes_list = []
-        bytes_received = 0
-        while bytes_received < datalength:
-            chunk = ssl_connect_sock.recv(min(datalength - bytes_received, 4096))
-            if not chunk:
-                raise ConnectionError("客户端在传输数据时断开连接。")
-            json_bytes_list.append(chunk)
-            bytes_received += len(chunk)
-        
-        json_bytes = b''.join(json_bytes_list)
-
-        # 解码并反序列化为 dataclass 对象
-        msg_dict = json.loads(json_bytes.decode("UTF-8"))
-        received_msg = deserialize(msg_dict)
-        return received_msg
-    except (ConnectionError, ConnectionResetError):
-        print("客户端连接中断。")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"JSON 解码错误: {e}")
-        return None
 
 def msg_process(ssl_connect_sock):
     try:
-        received_msg = recv_msg(ssl_connect_sock)
+        received_msg = T.recv_msg(ssl_connect_sock)
         if received_msg is None:
             print("客户端已断开连接。")
             return None
 
         if received_msg.tag.name == "Login":
-            reply_msg = T.handle_login(received_msg)
-            
+            reply_msg = T.handle_login(received_msg)        
         
         elif received_msg.tag.name == "Register":
-            reply_msg = T.handle_register(received_msg)
-            
+            reply_msg = T.handle_register(received_msg)           
 
         elif received_msg.tag.name == "Logout":
             reply_msg = T.handle_logout(received_msg)
@@ -99,7 +66,7 @@ try:
         print('服务器已启动，等待客户端连接...')
 
         connect_sock, address = sk.accept()
-        print(f"接受来自 {address} 的连接")
+        print(f"接受来自 {address} 的连接") # 得到了客户端socket的ip和port
 
         with context.wrap_socket(connect_sock, server_side=True) as ssl_connect_sock:
             while True:

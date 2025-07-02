@@ -18,7 +18,7 @@ def recv_msg(ssl_connect_sock):
     if not json_bytes:
         return None
 
-        # 解码并反序列化未dataclass对象
+    # 解码并反序列化未dataclass对象
     msg_dict = json.loads(json_bytes.decode("UTF-8"))
     received_msg = deserialize(msg_dict)
     return received_msg
@@ -31,7 +31,6 @@ def handle_register(ssl_connect_sock):
     inp_username = input("请输入用户名: ").strip()
     inp_secret = input("请输入密码: ").strip()
     inp_email = input("请输入邮箱: ").strip()
-    # login_msg = S.RegisterMsg(username="佀凯淇", secret="password123", email="1234567890@qq.com")
     register_msg = S.RegisterMsg(username=inp_username, secret=inp_secret, email=inp_email, time=int(time.time()))
 
     print(f"ready to send the message: {register_msg}")  
@@ -47,10 +46,10 @@ def handle_register(ssl_connect_sock):
         return None
 
     print(f"服务器回复: {received_msg}")
-    if received_msg.tag.name == "SuccessRegister":
+    if received_msg.tag.name == "SuccessRegister" and received_msg.username == inp_username:
         print(f"注册成功: {received_msg}")
         return True
-    if received_msg.tag.name == "FailRegister":
+    if received_msg.tag.name == "FailRegister" and received_msg.username == inp_username:
         print(f"注册失败: {received_msg}")
         return None
 
@@ -76,11 +75,23 @@ def handle_login(ssl_connect_sock, my_p2p_port):
         print("客户端已断开连接。")
         return None
 
-    if received_msg.tag.name == "SuccessLogin":
+    if received_msg.tag.name == "SuccessLogin" and received_msg.username == inp_username:
         print(f"登录成功: {received_msg}")
-        return True
+        ''' 
+        建立监听接口，等待联系人连接
+        如果接收到到消息且接收者为本人
+        则将消息根据发送id保存到历史记录，等ui显示    
+        '''
 
-    if received_msg.tag.name == "FailLogin":
+   
+
+
+
+
+
+        return True
+    
+    if received_msg.tag.name == "FailLogin" and received_msg.username == inp_username:
         print(f"登录失败: {received_msg}")
         return None
 
@@ -95,7 +106,7 @@ def handle_get_directory(ssl_connect_sock):
     ''' 从服务器获取联系人列表 '''
 
 
-    ''' 将服务器返回的联系人列表更新到本地 '''
+    ''' 将服务器返回的联系人列表更新到本地 主要是离线时收到的消息'''
     
 
 

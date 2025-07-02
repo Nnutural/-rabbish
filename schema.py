@@ -169,6 +169,7 @@ class SuccessLoginMsg:
     """S->C 登录成功 (Tag: 22)"""
     username: str
     user_id: Union[str, int]
+    directory: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.SuccessLogin, init=False)
 

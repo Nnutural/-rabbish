@@ -39,27 +39,25 @@ def bind_to_free_port():
 # 获取一个绑定好空闲端口的socket
 p2p_server_sock, my_p2p_port = bind_to_free_port() # 客户端的的监听端口，用于等待联系人连接
 
-
-
 def msg_process(ssl_connect_sock):
     received_msg = T.recv_msg(ssl_connect_sock)
     if received_msg is None:
         print("客户端已断开连接。")
         return None
 
-    # print(f"服务器回复: {received_msg}")
-    # if received_msg.tag.name == "SuccessRegister":
-    #     print(f"注册成功: {received_msg}")
-    #     return True
+    # # print(f"服务器回复: {received_msg}")
+    # # if received_msg.tag.name == "SuccessRegister":
+    # #     print(f"注册成功: {received_msg}")
+    # #     return True
 
-    # elif received_msg.tag.name == "FailRegister":
-    #     print(f"注册失败: {received_msg}")
+    # # elif received_msg.tag.name == "FailRegister":
+    # #     print(f"注册失败: {received_msg}")
 
-    elif received_msg.tag.name == "SuccessLogin":
-        print(f"登录成功: {received_msg}")
+    # elif received_msg.tag.name == "SuccessLogin":
+    #     print(f"登录成功: {received_msg}")
 
-    elif received_msg.tag.name == "FailLogin":
-        print(f"登录失败: {received_msg}")
+    # elif received_msg.tag.name == "FailLogin":
+    #     print(f"登录失败: {received_msg}")
 
 def User_evnets_process(ssl_connect_sock):
     T.handle_get_directory(ssl_connect_sock) # update the directory from server
@@ -104,8 +102,8 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
                         if User_evnets_process(ssl_connect_sock) is None:
                             break
                         
-                        if msg_process(ssl_connect_sock) is None:
-                            break
+                        # if msg_process(ssl_connect_sock) is None:
+                        #     break
 
     except FileNotFoundError:
         print(f"\n错误: 找不到CA证书文件 '{CA_FILE}'。")
@@ -119,23 +117,25 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
     print("客户端已关闭。")
 
 def login_screen(ssl_connect_sock, my_p2p_port) -> bool:
-    for _ in range(5):
-        opt = input("plesse inpu login / register: ")
+    for _ in range(10):
+        opt = input("plesse input login / register / exit: ")
         if opt == "login":          
-            while T.handle_login(ssl_connect_sock, my_p2p_port) is None: # TO_DO 在boot()的端口和IP基础上，建立监听socket，等待联系人连接
-                return True
+            if T.handle_login(ssl_connect_sock, my_p2p_port): # TO_DO 在boot()的端口和IP基础上，建立监听socket，等待联系人连接
+                return True # 如果登录成功，则进入聊天界面，否则还处于for循环
 
         elif opt == "register":
-            while T.handle_register(ssl_connect_sock) is None:
-                return True
+            T.handle_register(ssl_connect_sock) 
+            # 注册失败/成功，都继续for循环，等待下一步动作，直到达到10次循环/exit/成功login
         
         elif opt == "exit":
             return False
+            # 输入exit，则直接退出
 
         else:
             print("invalid input")
 
     return False
+    # 如果循环次数达到上限，则返回False
 
 def main():
     boot()
