@@ -185,6 +185,7 @@ class SuccessLogoutMsg:
 class SuccessBackUpMsg:
     """S->C 备份成功 (Tag: 24)"""
     user_id: Union[str, int]
+    username: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.SuccessBackUp, init=False)
     
@@ -216,6 +217,7 @@ class PublicKeyMsg:
 @dataclass
 class FailRegisterMsg:
     """S->C 注册失败 (Tag: 28)"""
+    username: str
     error_type: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.FailRegister, init=False)
@@ -224,5 +226,6 @@ class FailRegisterMsg:
 class FailLoginMsg:
     """S->C 登录失败 (Tag: 29)"""
     error_type: str
+    username: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.FailLogin, init=False)

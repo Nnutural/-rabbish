@@ -1,30 +1,32 @@
 import json
+from re import A
 import threading
 import time
+from queue import Queue
 dic = {}
 name_status_map = {}
 
-def thread_job():
-    print("T1 start\n")
-    for i in range(10):
-        time.sleep(1)
-    print("T1 finish\n")
+# def thread_job():
+#     print("T1 start\n")
+#     for i in range(10):
+#         time.sleep(1)
+#     print("T1 finish\n")
 
-def t2_job():
-    print("T2 start\n")
-    print("T2 finish\n")
+# def t2_job():
+#     print("T2 start\n")
+#     print("T2 finish\n")
 
-def main():
-    t = threading.Thread(target = thread_job, name = "T1")
-    t2 = threading.Thread(target = t2_job, name = "T2")
-    t.start() # 启动线程
-    t2.start()
-    # t.join() # 在该行等待线程结束
-    print("all done\n")
+# def main():
+#     # t = threading.Thread(target = thread_job, name = "T1")
+#     # t2 = threading.Thread(target = t2_job, name = "T2")
+#     # t.start() # 启动线程
+#     # t2.start()
+#     # # t.join() # 在该行等待线程结束
+#     # print("all done\n")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 
 
@@ -70,25 +72,109 @@ def json_dic():
     with open("data.json", "r", encoding = "utf-8") as f:
         dic = json.load(f )
 
+    # print(dic)
+
     contacts = dic.get("contacts")
     for key in contacts:
-        # print(key.get("name"), key.get("status"))
+        print(key.get("name"), key.get("status"))
         pass
 
-    name_status_map = {c["name"]: c["status"] for c in dic.get("contacts", [])}
-    for name, status in name_status_map.items():
-        if status == "online":
-            print(name, status)
+    # name_status_map = {c["name"]: c["status"] for c in dic.get("contacts", [])}
+    # for name, status in name_status_map.items():
+    #     if status == "online":
+    #         print(name, status)
 
-    print(name_status_map.keys())
+    # print(name_status_map.keys())
 
-    while True:
-        choice = input("which friend do you want to send message to: ").strip()
-        if choice in name_status_map.keys(): # 判断人名是否在本地联系人列表中然后判断是否在线
-            if name_status_map[choice] == "online":
-                print("=======Now you are chatting with {} =======".format(choice))
-            else:
-                print("=======The user is offline =======".format(choice))
-        else:
-            print("=======The user is not in your contact list =======".format(choice))
-            print("RECHOICE: ")
+    # while True:
+    #     choice = input("which friend do you want to send message to: ").strip()
+    #     if choice in name_status_map.keys(): # 判断人名是否在本地联系人列表中然后判断是否在线
+    #         if name_status_map[choice] == "online":
+    #             print("=======Now you are chatting with {} =======".format(choice))
+    #         else:
+    #             print("=======The user is offline =======".format(choice))
+    #     else:
+    #         print("=======The user is not in your contact list =======".format(choice))
+    #         print("RECHOICE: ")
+
+
+def thread_job():
+    print("T1 start\n")
+    for i in range(10):
+        time.sleep(0.2)
+    print("T1 finish\n")
+
+def t2_job():
+    print("T2 start\n")
+    print("T2 finish\n")
+
+def job(l,q):
+    for i in range(len(l)):
+        l[i] = l[i]**2
+    q.put(l)
+
+
+def multithread():
+    q = Queue()
+    threads = []
+    data = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
+    for i in range(4):
+        t = threading.Thread(target = job, args=(data[i],q))
+        t.start()
+        threads.append(t)
+    for thread in threads:
+        thread.join()
+
+    results = []
+    for _ in range(4):
+        results.append(q.get())
+    print(results)
+
+
+
+def job1():
+    global A
+    for i in range
+
+def job2():
+    pass
+
+
+
+def main():
+    A = 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    multithread()
+
+
+    # t = threading.Thread(target = thread_job, name = "T1")
+    # t2 = threading.Thread(target = t2_job, name = "T2")
+    # t.start() # 启动线程
+    # t2.start()
+    # t2.join() # 在该行等待线程结束
+    # t.join()
+    # print("all done\n")
+    
+    
+    
+    # json_dic()
+
+
+if __name__ == "__main__":
+    main()

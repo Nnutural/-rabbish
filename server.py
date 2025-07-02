@@ -9,8 +9,8 @@ import uuid
 import Transaction_Server as T
 from serializer import serialize, deserialize
 
-ip_port = ("127.0.0.1", 47474)
-
+ip_port = ("", 47474)
+# ip_port = ("10.122.192.1", 47474)
 
 def msg_process(ssl_connect_sock):
     try:
@@ -67,6 +67,7 @@ try:
 
         connect_sock, address = sk.accept()
         print(f"接受来自 {address} 的连接") # 得到了客户端socket的ip和port
+
 
         with context.wrap_socket(connect_sock, server_side=True) as ssl_connect_sock:
             while True:

@@ -1,0 +1,12 @@
+
+[
+  {
+    "user_id"    : "100001",
+    "username"   : "alice",                    
+    "email"      : "alice@example.com",              
+    "pass_hash"  : "1f7ab0f127…",                           
+    "created_at" : "2025-06-28T10:21:12Z"                   
+  }
+
+
+]
