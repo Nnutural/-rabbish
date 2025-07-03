@@ -157,7 +157,7 @@ def handle_login(ssl_connect_sock, my_p2p_port):
         ''' 
         建立监听接口，等待联系人连接
         如果接收到到消息且接收者为本人
-        则将消息根据发送id保存到历史记录，等ui显示    
+          则将消息根据发送id保存到历史记录，等ui显示  
         '''
         recv_large_data(ssl_connect_sock, received_msg.transfer_id)
 

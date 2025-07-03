@@ -1,25 +1,11 @@
 {
     "contacts": [
       {
-        "id": 1,
-        "name": "张三",
-        "status": "online",
-        "time": "11:30",
-        "address": "127.0.0.1:10000"
       },
       {
-        "id": 2,
-        "name": "李四",
-        "status": "offline",
-        "time": "昨天",
-        "address": "127.0.0.1:10001"
       },
       {
-        "id": 3,
-        "name": "王五",
-        "status": "online",
-        "time": "周二",
-        "address": "127.0.0.1:10002"
+
       },
       {
         "id": 4,

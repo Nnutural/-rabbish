@@ -13,7 +13,7 @@ class ContactManager:
     def __init__(self, username: str):
         self.username = username
         # 为每个用户创建一个独立的通讯录文件
-        self.filepath = os.path.join('data', 'contacts', f"{self.username}_contacts.json")
+        self.filepath = os.path.join('data', 'directory', f"{self.username}.json")
         self.contacts = self._load_contacts()
 
     def _load_contacts(self) -> List[Dict[str, Any]]:

@@ -11,8 +11,89 @@ import math
 import base64
 from serializer import serialize, deserialize
 from dataclasses import asdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 import hashlib
+
+class Contact:
+    """
+    管理单个用户的通讯录。
+    每个用户都有一个独立的JSON文件来存储其联系人列表。
+    """
+    def __init__(self, username: str):
+        self.username = username
+        # 为每个用户创建一个独立的通讯录文件
+        self.filepath = os.path.join('data', 'directory', f"{self.username}.json")
+        self.contacts = self._load_contacts()
+
+    def _load_contacts(self) -> List[Dict[str, Any]]:
+        """从文件加载通讯录，如果文件不存在则返回空列表。"""
+        try:
+            # 确保目录存在
+            os.makedirs(os.path.dirname(self.filepath), exist_ok=True)
+            with open(self.filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get("contacts", [])
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+
+    def _save_contacts(self):
+        """
+        保存通讯录到文件。
+        在保存前，会根据最近通信时间戳对联系人进行排序，并重新生成ID。
+        """
+        # 1. 根据时间戳对联系人进行降序排序
+        self.contacts.sort(key=lambda c: c.get('time', 0), reverse=True)
+        
+        # 2. 重新生成ID
+        for i, contact in enumerate(self.contacts):
+            contact['id'] = i + 1
+            
+        with open(self.filepath, 'w', encoding='utf-8') as f:
+            json.dump({"contacts": self.contacts}, f, indent=4, ensure_ascii=False)
+
+    def update_or_add_contact(self, name: str, address: str, preview: str):
+        """
+        更新或添加一个联系人。
+        如果联系人已存在，则更新其信息和时间戳。
+        如果不存在，则添加为新联系人。
+        """
+        found = False
+        current_time = int(time.time())
+        
+        for contact in self.contacts:
+            if contact.get("name") == name:
+                # 更新现有联系人
+                contact["address"] = address
+                contact["preview"] = preview
+                contact["time"] = current_time
+                found = True
+                break
+        
+        if not found:
+            # 添加新联系人
+            new_contact = {
+                "id": -1, # id将在保存时重新计算
+                "name": name,
+                "status": "offline", # 初始状态为离线，将在获取时更新
+                "preview": preview,
+                "time": current_time,
+                "address": address
+            }
+            self.contacts.append(new_contact)
+            
+        self._save_contacts()
+        print(f"[通讯录日志] 用户 {self.username} 的通讯录已更新，联系人: {name}")
+
+    def get_contacts_with_status(self, online_users_set: Set[str]) -> List[Dict[str, Any]]:
+        """
+        获取通讯录列表，并根据在线用户集合实时更新联系人状态。
+        """
+        for contact in self.contacts:
+            if contact.get("name") in online_users_set:
+                contact["status"] = "online"
+            else:
+                contact["status"] = "offline"
+        return self.contacts
 
 def hash_password(password: str) -> str:
     """使用SHA-256对密码进行哈希处理。"""
@@ -171,6 +252,8 @@ def handle_register(msg: S.RegisterMsg,):
     
     # 将更新后的用户列表保存到文件
     save_users_to_json("data/users.json", USER_LIST)
+    user_dic = Contact(msg.username)
+    user_dic._save_contacts()
     
     print(f"[服务器日志] 用户 '{msg.username}' 创建成功, user_id: {new_user_id}。\n") # 应该查看使用否有对应的通讯录文件
     response = S.SuccessRegisterMsg(
@@ -208,9 +291,18 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
     if verify_password(msg.secret, user_record.get('pass_hash', '')):
         # 更新：检查 user_id
         if found_username and 'user_id' in user_record:
+
             port = msg.port
             user_record['address'] = f"{user_ip}:{port}"
-            save_users_to_json("data/users.json", USER_LIST) # 更新用户列表 这一步也应该更新该用户好友的通讯录
+            save_users_to_json("data/users.json", USER_LIST) 
+            # 更新用户列表 这一步也应该更新该用户好友的通讯录
+            '''
+            1. 根据该用户通讯录中的好友，查找好友的通讯录（无则跳过）
+            2. 在好友的通讯录中，更新当前用户的状态
+            3. 调用通讯录更新函数，向好友发送当前用户的状态
+            '''
+
+
             
             print(f"[服务器日志] 用户 '{found_username}' 验证成功。\n")
             transfer_id = str(uuid.uuid4()) # 生成一个唯一的传输ID
