@@ -5,7 +5,7 @@
             "name": "sikaiqi",
             "status": "online",
             "time": "周一",
-            "address": "10.122.233.244:11000"
+            "address": "127.0.0.1:11000"
         }
     ]
 }

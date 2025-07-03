@@ -123,11 +123,11 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
         # --- MODIFICATION START ---
         # 使用新函数建立连接
         ssl_connect_sock = P.create_secure_connection(
-            server_ip_port=ip_port,
-            ca_file=CA_FILE,
-            cert_file=CLIENT_CERT_FILE,
-            key_file=CLIENT_KEY_FILE,
-            server_hostname=SERVER_HOSTNAME
+            server_ip_port = ip_port,
+            ca_file = CA_FILE,
+            cert_file = CLIENT_CERT_FILE,
+            key_file = CLIENT_KEY_FILE,
+            peer_hostname = SERVER_HOSTNAME
         )
 
         if not ssl_connect_sock:

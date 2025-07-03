@@ -16,12 +16,12 @@ contacts_map = {}
 MY_USERNAME = "" 
 CA_FILE = "ca.crt"
 CLIENT_CERT_FILE = "client.crt"
-SERVER_HOSTNAME = 'SERVER'  # 可能生成时需要修改
+PEER_HOSTNAME = 'CLIENT'  # 可能生成时需要修改 !!!!!!!!
 CLIENT_KEY_FILE = "client_rsa_private.pem.unsecure"
 
 # --- NEW ENCAPSULATED FUNCTION ---
 
-def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, server_hostname):
+def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, peer_hostname):
     """
     创建并返回一个到服务器的安全SSL/TLS连接。
 
@@ -53,7 +53,7 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, serve
         sock = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
 
         # 5. 将普通套接字包装成SSL套接字
-        ssl_sock = context.wrap_socket(sock, server_hostname=server_hostname)
+        ssl_sock = context.wrap_socket(sock, server_hostname = peer_hostname)
 
         # 6. 连接到服务器
         ssl_sock.connect(server_ip_port)
@@ -63,7 +63,19 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, serve
         pprint.pprint(ssl_sock.getpeercert())
         print("------------------------\n")
 
-        return ssl_sock
+        return ssl_sock # 返回一个普通的socket，而不是ssl_sock
+
+# def create_connection(server_ip_port, ca_file, cert_file, key_file, server_hostname):
+#     try:
+#         # 4. 创建一个普通的TCP套接字
+#         sock = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
+
+#         # 6. 连接到服务器
+#         sock.connect(server_ip_port)
+
+#         print("------------------------\n")
+
+#         return sock # 返回一个普通的socket，而不是ssl_sock
 
     except FileNotFoundError as e:
         print(f"\n错误: 找不到证书文件 '{e.filename}'。请确保文件存在于正确的位置。")
@@ -75,7 +87,7 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, serve
         print(f"错误: 连接被拒绝。服务器({server_ip_port})可能未运行或被防火墙阻止。")
         return None
     except skt.gaierror:
-        print(f"错误: 无法解析主机名 '{server_hostname}' 或 IP '{server_ip_port[0]}'")
+        print(f"错误: 无法解析主机名 '{peer_hostname}' 或 IP '{server_ip_port[0]}'")
         return None
     except Exception as e:
         print(f"创建安全连接时发生未知错误: {e}")
@@ -92,14 +104,14 @@ def send_p2p_msg(ssl_connect_sock, msg_obj):
         return False
     return True
 
-def recv_p2p_msg(sock):
+def recv_p2p_msg(ssl_connect_sock):
     """Receives and deserializes a P2P message object."""
     try:
-        len_bytes = sock.recv(4)
+        len_bytes = ssl_connect_sock.recv(4)
         if not len_bytes:
             return None
         msg_len = int.from_bytes(len_bytes, byteorder='big')
-        json_bytes = sock.recv(msg_len)
+        json_bytes = ssl_connect_sock.recv(msg_len)
         if not json_bytes:
             return None
         msg_dict = json.loads(json_bytes.decode("UTF-8"))
@@ -108,16 +120,16 @@ def recv_p2p_msg(sock):
         return None
 # --- P2P LISTENER LOGIC (Runs in a separate thread) ---
 
-def handle_incoming_chat(conn: skt.socket, addr):
+def handle_incoming_chat(ssl_connect_sock, addr):
     """
     Handles a single, established P2P chat connection.
     This function is for the person RECEIVING the chat request.
     """
     print(f"\n[P2P] Incoming connection from {addr}. Starting chat session.")
     try:
-        with conn:
+        with ssl_connect_sock:
             while True:
-                msg = recv_p2p_msg(conn) # 接收到了发送给当前用户的消息
+                msg = recv_p2p_msg(ssl_connect_sock) # 接收到了发送给当前用户的消息
                 if msg is None:
                     print(f"\n[Chat] Peer {addr} has disconnected.")
                     break
@@ -133,24 +145,39 @@ def handle_incoming_chat(conn: skt.socket, addr):
     finally:
          print(f"[P2P] Session with {addr} ended.")
 
+# --- MODIFIED: P2P监听器，现在使用SSL ---
 def p2p_listener(p2p_server_sock):
-    """
-    Listens for incoming P2P connections from friends.
-    Runs in its own daemon thread.
-    """
-    print("[P2P Listener] Thread started, waiting for friends to connect...")
+
+    p2p_ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    p2p_ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+    # 2. 加载用于验证服务器的CA证书
+    p2p_ssl_context.load_verify_locations(CA_FILE)
+
+    # 3. 加载客户端自己的证书和私钥（用于服务器验证客户端）
+    p2p_ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
+
+    if not p2p_ssl_context:
+        print("[P2P Listener] SSL上下文创建失败，监听线程退出。")
+        return
+
+    print("[P2P Listener] 线程已启动，等待安全的P2P连接...")
     p2p_server_sock.listen()
     while True:
         try:
             conn, addr = p2p_server_sock.accept()
-
-            # Start a new thread to handle the chat, so the listener can accept more connections
-            handler_thread = threading.Thread(target=handle_incoming_chat, args=(conn, addr), daemon=True)
+            print(f"\n[P2P Listener] 接受到来自 {addr} 的TCP连接，正在进行SSL握手...")
+            
+            # 关键修复：使用SSL上下文包装接受的连接 !!!!!!
+            ssl_conn = p2p_ssl_context.wrap_socket(conn, server_side=True)
+            
+            print(f"[P2P Listener] 与 {addr} 的SSL握手成功！")
+            handler_thread = threading.Thread(target=handle_incoming_chat, args=(ssl_conn, addr), daemon=True)
             handler_thread.start()
-
+        except ssl.SSLError as e:
+            print(f"\n[P2P Listener] 来自 {addr} 的SSL握手失败: {e}")
         except Exception as e:
-            print(f"[P2P Listener] Error accepting connections: {e}")
-            break
+            print(f"\n[P2P Listener] 发生错误: {e}")
 
 # --- P2P CHAT INITIATOR LOGIC ---
 
@@ -180,7 +207,7 @@ def start_p2p_chat(friend_name, ip, port):
             ca_file = CA_FILE,
             cert_file = CLIENT_CERT_FILE,
             key_file = CLIENT_KEY_FILE,
-            server_hostname = SERVER_HOSTNAME
+            peer_hostname = PEER_HOSTNAME
         )
 
         if not ssl_connect_sock:
@@ -282,6 +309,7 @@ def choose_friend(ssl_connect_sock, choice):
             
             # 获取地址字符串，例如 "127.0.0.1:10000"
             address_str = friend_details.get("address")
+            print(address_str)
             
             if not address_str:
                 print(f"[Error] {choice} is online but has no address information.")

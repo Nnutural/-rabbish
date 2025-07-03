@@ -5,7 +5,7 @@
         "name": "admin",
         "status": "online",
         "time": "11:30",
-        "address": "10.21.168.38:15000"
+        "address": "127.0.0.1:15000"
       },
       {
         "id": 2,
@@ -16,7 +16,7 @@
       },
       {
         "id": 3,
-        "name": "王五",
+        "name": "nnutural",
         "status": "online",
         "time": "周二",
         "address": "127.0.0.1:10002"
