@@ -121,8 +121,10 @@ class BackupMsg:
 class MessageMsg:
     """P2P 普通消息 (Tag: 11)"""
     message_id: str
-    source_id: Union[str, int]
-    dest_id: Union[str, int]
+    # source_id: Union[str, int]
+    # dest_id: Union[str, int]
+    sender_name: str
+    receiver_name: str
     content: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.Message, init=False)
@@ -131,8 +133,10 @@ class MessageMsg:
 class VoiceMsg: # 后面需要加入分包功能
     """P2P 语音消息 (Tag: 12)"""
     voice_id: str
-    source_id: Union[str, int]
-    dest_id: Union[str, int]
+    # source_id: Union[str, int]
+    # dest_id: Union[str, int]
+    sender_name: str
+    receiver_name: str
     data: bytes  # Voice data is binary
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.Voice, init=False)
@@ -141,8 +145,10 @@ class VoiceMsg: # 后面需要加入分包功能
 class FileMsg:
     """P2P 文件消息 (Tag: 13)"""
     file_id: str
-    source_id: Union[str, int]
-    dest_id: Union[str, int]
+    # source_id: Union[str, int]
+    # dest_id: Union[str, int]
+    sender_name: str
+    receiver_name: str
     file_name: str # It's good practice to include the file name
     data: bytes  # File data is binary
     time: int = field(default_factory=get_timestamp)
@@ -152,8 +158,10 @@ class FileMsg:
 class ImageMsg:
     """P2P 图片消息 (Tag: 14)"""
     picture_id: str
-    source_id: Union[str, int]
-    dest_id: Union[str, int]
+    # source_id: Union[str, int]
+    # dest_id: Union[str, int]
+    sender_name: str
+    receiver_name: str
     data: bytes  # Picture data is binary
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.Image, init=False)

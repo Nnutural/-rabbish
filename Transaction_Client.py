@@ -163,7 +163,7 @@ def handle_login(ssl_connect_sock, my_p2p_port):
         '''
         recv_large_data(ssl_connect_sock, received_msg.transfer_id)
 
-        return True
+        return received_msg.username
     
     if received_msg.tag.name == "FailLogin" and received_msg.username == inp_username:
         print(f"登录失败: {received_msg}")

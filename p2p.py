@@ -1,46 +1,280 @@
+# --- START OF MODIFIED p2p.py ---
+import socket as skt
+import ssl
+import schema as S
 import json
-name_status_map = {}
+from serializer import serialize, deserialize
+import threading
+import pprint
+import time
+# --- MODIFICATION START ---
+# contacts_map {"张三": {"id": 1, "name": "张三", ...}, "李四": {...}}
+contacts_map = {}
+# --- MODIFICATION END ---
+# A global variable to hold the current user's name after login
+MY_USERNAME = "" 
+CLIENT_CERT_FILE = "client.crt"
+CLIENT_KEY_FILE = "client_rsa_private.pem.unsecure"
+
+# --- NEW ENCAPSULATED FUNCTION ---
+
+def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, server_hostname):
+    """
+    创建并返回一个到服务器的安全SSL/TLS连接。
+
+    此函数封装了SSL上下文创建、证书加载、套接字包装和连接的所有步骤。
+
+    Args:
+        server_ip_port (tuple): 服务器的 (ip, port) 元组。
+        ca_file (str): CA证书文件的路径。
+        cert_file (str): 客户端证书文件的路径。
+        key_file (str): 客户端私钥文件的路径。
+        server_hostname (str): 用于证书验证和SNI的服务器主机名。
+
+    Returns:
+        ssl.SSLSocket: 如果连接成功，返回已连接的安全套接字。
+        None: 如果发生任何错误（文件未找到、证书验证失败、连接被拒绝等）。
+    """
+    try:
+        # 1. 创建SSL上下文
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.verify_mode = ssl.CERT_REQUIRED
+
+        # 2. 加载用于验证服务器的CA证书
+        context.load_verify_locations(ca_file)
+
+        # 3. 加载客户端自己的证书和私钥（用于服务器验证客户端）
+        context.load_cert_chain(certfile=cert_file, keyfile=key_file)
+
+        # 4. 创建一个普通的TCP套接字
+        sock = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
+
+        # 5. 将普通套接字包装成SSL套接字
+        ssl_sock = context.wrap_socket(sock, server_hostname=server_hostname)
+
+        # 6. 连接到服务器
+        ssl_sock.connect(server_ip_port)
+
+        print("--- 成功连接到服务器 ---")
+        print("服务器证书信息:")
+        pprint.pprint(ssl_sock.getpeercert())
+        print("------------------------\n")
+
+        return ssl_sock
+
+    except FileNotFoundError as e:
+        print(f"\n错误: 找不到证书文件 '{e.filename}'。请确保文件存在于正确的位置。")
+        return None
+    except ssl.SSLCertVerificationError as e:
+        print(f"\n错误: 服务器证书验证失败! {e}")
+        return None
+    except ConnectionRefusedError:
+        print(f"错误: 连接被拒绝。服务器({server_ip_port})可能未运行或被防火墙阻止。")
+        return None
+    except skt.gaierror:
+        print(f"错误: 无法解析主机名 '{server_hostname}' 或 IP '{server_ip_port[0]}'")
+        return None
+    except Exception as e:
+        print(f"创建安全连接时发生未知错误: {e}")
+        return None
+
+def send_p2p_msg(sock, msg_obj):
+    """Serializes and sends a P2P message object with a length prefix."""
+    json_bytes = serialize(msg_obj)
+    msg_len_bytes = len(json_bytes).to_bytes(4, byteorder='big')
+    try:
+        sock.sendall(msg_len_bytes + json_bytes)
+    except (BrokenPipeError, ConnectionResetError):
+        print("\n[Chat] Connection lost.")
+        return False
+    return True
+
+def recv_p2p_msg(sock):
+    """Receives and deserializes a P2P message object."""
+    try:
+        len_bytes = sock.recv(4)
+        if not len_bytes:
+            return None
+        msg_len = int.from_bytes(len_bytes, byteorder='big')
+        json_bytes = sock.recv(msg_len)
+        if not json_bytes:
+            return None
+        msg_dict = json.loads(json_bytes.decode("UTF-8"))
+        return deserialize(msg_dict)
+    except (ConnectionResetError, json.JSONDecodeError):
+        return None
+# --- P2P LISTENER LOGIC (Runs in a separate thread) ---
+
+def handle_incoming_chat(conn: skt.socket, addr):
+    """
+    Handles a single, established P2P chat connection.
+    This function is for the person RECEIVING the chat request.
+    """
+    print(f"\n[P2P] Incoming connection from {addr}. Starting chat session.")
+    try:
+        with conn:
+            while True:
+                msg = recv_p2p_msg(conn)
+                if msg is None:
+                    print(f"\n[Chat] Peer {addr} has disconnected.")
+                    break
+                if isinstance(msg, S.MessageMsg):
+                    print(f"\r[{msg.sender_name} says]: {msg.content}      ")
+                    print("You: ", end="", flush=True) # Re-print the input prompt
+                else:
+                    print(f"\n[Chat] Received unknown message type from {addr}.")
+    except Exception as e:
+        print(f"\n[Chat] Error with peer {addr}: {e}")
+    finally:
+         print(f"[P2P] Session with {addr} ended.")
 
 def p2p_listener(p2p_server_sock):
-    pass
+    """
+    Listens for incoming P2P connections from friends.
+    Runs in its own daemon thread.
+    """
+    print("[P2P Listener] Thread started, waiting for friends to connect...")
+    p2p_server_sock.listen()
+    while True:
+        try:
+            conn, addr = p2p_server_sock.accept()
+            # Start a new thread to handle the chat, so the listener can accept more connections
+            handler_thread = threading.Thread(target=handle_incoming_chat, args=(conn, addr), daemon=True)
+            handler_thread.start()
+        except Exception as e:
+            print(f"[P2P Listener] Error accepting connections: {e}")
+            break
+
+# --- P2P CHAT INITIATOR LOGIC ---
+
+def receiver_thread_func(sock: skt.socket, friend_name: str):
+    """
+    Dedicated thread to only receive messages from a friend.
+    This is for the person who INITIATED the chat.
+    """
+    while True:
+        msg = recv_p2p_msg(sock)
+        if msg is None:
+            print(f"\n[Chat] {friend_name} has disconnected. Press Enter to exit chat.")
+            break
+        if isinstance(msg, S.MessageMsg):
+            # \r moves cursor to beginning of line, then we overwrite the "You: " prompt
+            print(f"\r[{msg.sender_name} says]: {msg.content}      ")
+            print("You: ", end="", flush=True) # Re-print the input prompt
+
+def start_p2p_chat(friend_name, ip, port):
+    """
+    Initiates a P2P chat session with a friend.
+    """
+    print(f"--- Attempting to connect to {friend_name} at {ip}:{port} ---")
+    try:
+        with skt.socket(skt.AF_INET, skt.SOCK_STREAM) as p2p_client_sock:
+            p2p_client_sock.connect((ip, port))
+            print(f"--- Connection successful! You can now chat with {friend_name}. ---")
+            print("--- Type '/exit' to end the chat. ---")
+            
+            # Start a thread to listen for incoming messages
+            recv_thread = threading.Thread(target=receiver_thread_func, args=(p2p_client_sock, friend_name), daemon=True)
+            recv_thread.start()
+
+            # Main thread loop for sending messages
+            while True:
+                msg_content = input("You: ")
+                if not recv_thread.is_alive(): # Check if the friend disconnected
+                    break
+                if msg_content.strip().lower() == '/exit':
+                    break
+                
+                # Create and send the message object
+                msg_to_send = S.MessageMsg(
+                    content=msg_content, 
+                    sender_name=MY_USERNAME, 
+                    time=int(time.time())
+                )
+                if not send_p2p_msg(p2p_client_sock, msg_to_send):
+                    break # Stop if sending fails
+
+    except ConnectionRefusedError:
+        print(f"\n[Connection Error] {friend_name} is not available or refused the connection.")
+    except Exception as e:
+        print(f"\n[Chat Error] An error occurred: {e}")
+    finally:
+        print(f"--- Chat with {friend_name} ended. Returning to main menu. ---")
+
+
 
 def init_directory(ssl_connect_sock):
-    global name_status_map
-    ''' 输出本地联系人列表 '''
-    directionary = {}
+    # --- MODIFICATION START ---
+    global contacts_map
+    ''' 从本地 data.json 加载联系人列表到内存中 '''
+    try:
+        with open("data.json", "r", encoding = "UTF-8") as f:
+            directory_data = json.load(f)
 
-    with open("data.json", "r", encoding = "UTF-8") as f:
-        directionary = json.load(f)
+        # 使用字典推导式高效地创建 contacts_map
+        # 键是联系人名字，值是联系人完整的字典信息
+        contacts_map = {c["name"]: c for c in directory_data.get("contacts", [])}
+        
+        print("\n--- Your Contact List ---")
+        if not contacts_map:
+            print("Your contact list is empty.")
+        else:
+            # 打印每个联系人的名字和状态
+            for name, details in contacts_map.items():
+                status = details.get("status", "unknown")
+                print(f"- {name} ({status})")
+        print("-------------------------\n")
 
-    # contacts = directionary.get("contacts")
-    # for key in contacts:
-    #     print(key.get("name"), key.get("status"))
-    # 只保存名字和状态，其他信息忽略
-    name_status_map = {c["name"]: c["status"] for c in directionary.get("contacts", [])}
-    for name, status in name_status_map.items():
-        print(name, status)
+    except FileNotFoundError:
+        print("[Error] data.json not found. Cannot load contact list.")
+        contacts_map = {}
+    except json.JSONDecodeError:
+        print("[Error] Failed to parse data.json. Contact list might be corrupted.")
+        contacts_map = {}
+    # --- MODIFICATION END ---
 
 
 def choose_friend(ssl_connect_sock, choice):
-    
     if choice == "exit":
-        return None # 这里会直接退出程序
+        return None # 返回 None 表示希望主程序退出
 
-    if choice in name_status_map.keys(): # 判断人名是否在本地联系人列表中然后判断是否在线
-        if name_status_map[choice] == "online":
-            print("=======Now you are chatting with {} =======".format(choice))
+    # --- MODIFICATION START ---
+    # 在 contacts_map 中查找用户选择的好友
+    if choice in contacts_map:
+        friend_details = contacts_map[choice]
+        
+        # 检查好友状态
+        if friend_details.get("status") == "online":
+            print(f"======= {choice} is online. Trying to connect... =======")
+            
+            # 获取地址字符串，例如 "127.0.0.1:10000"
+            address_str = friend_details.get("address")
+            
+            if not address_str:
+                print(f"[Error] {choice} is online but has no address information.")
+                return True # 返回 True 表示继续循环，让用户重新选择
 
-        else:
-            print("=======The user is offline =======".format(choice))
-            return True
+            # 解析 IP 和端口
+            try:         
+                ip, port_str = address_str.split(':')
+                port = int(port_str)
+                # HERE IS THE KEY CHANGE: We call the chat function
+                start_p2p_chat(choice, ip, port)
+
+
+                # !!! After chat ends, we return True to go back to the contact list
+                return True
+
+            except (ValueError, IndexError) as e:
+                print(f"[Error] Invalid address format for {choice}: '{address_str}'. Error: {e}")
+                return True # 地址格式错误，让用户重新选择
+
+        else: # 好友离线
+            print(f"======= {choice} is offline. You can leave an offline message. =======")
+            return True # 返回 True 表示继续循环，让用户重新选择
     else:
-        print("=======The user is not in your contact list =======".format(choice))
-        print("RECHOICE: ")
-        return True
+        print("======= The user is not in your contact list. =======")
+        return True # 返回 True 表示继续循环，让用户重新选择
+    # --- MODIFICATION END ---
 
-    print("I'm chatting with {}".format(choice))
-    '''
-    ????
-    提前建立连接还是等用户选择后建立连接
-    之后进入哪一步？
-    '''
+# --- END OF MODIFIED p2p.py ---
