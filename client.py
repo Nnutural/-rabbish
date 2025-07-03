@@ -28,7 +28,7 @@ def bind_to_free_port():
         
         # 2. 调用bind，主机地址设为 "0.0.0.0" 或 "127.0.0.1"，端口号设为 0
         # "0.0.0.0" 表示监听所有可用的网络接口
-        sock.bind(("0.0.0.0", 0)) 
+        sock.bind(("0.0.0.0", 11000)) 
         
         # 3. bind之后，通过getsockname()获取操作系统实际分配的端口号
         port = sock.getsockname()[1]
@@ -79,7 +79,7 @@ def User_evnets_process(ssl_connect_sock, current_user):
             T.handle_get_history(ssl_connect_sock, current_user)
             continue
 
-        if P.choose_friend(ssl_connect_sock, choice) is None: # 这一步会进入Chat
+        if P.choose_friend(ssl_connect_sock, choice, current_user) is None: # 这一步会进入Chat
             return None
 
         P.init_directory(ssl_connect_sock, current_user) # output the local directory
@@ -113,7 +113,8 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
     # --- 使用 ---
     # 获取一个绑定好空闲端口的socket
     p2p_server_sock, my_p2p_port = bind_to_free_port() # 客户端的的监听端口，用于等待联系人连接
-    global current_user
+    global current_user 
+    # my_p2p_port = 11000  # 这样只是port改变，sock对应的还是原先的
 
     if p2p_server_sock is None:
         print("无法绑定到空闲端口，请检查网络连接。")

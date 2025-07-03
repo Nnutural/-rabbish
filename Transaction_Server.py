@@ -169,8 +169,8 @@ def send_large_data(ssl_connect_sock, data_bytes: bytes, file_name: str, id: str
     这个函数会处理整个 Start -> Chunk -> End 的流程。
     """
     try:
-        # 1. 准备元数据
         
+        # 1. 准备元数据       
         total_size = len(data_bytes)
         total_chunks = math.ceil(total_size / CHUNK_SIZE)
 
@@ -252,6 +252,7 @@ def handle_register(msg: S.RegisterMsg,):
     
     # 将更新后的用户列表保存到文件
     save_users_to_json("data/users.json", USER_LIST)
+    
     user_dic = Contact(msg.username)
     user_dic._save_contacts()
     

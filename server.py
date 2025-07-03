@@ -64,6 +64,8 @@ def msg_process(ssl_connect_sock):
 
 try:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.maximum_version = ssl.TLSVersion.TLSv1_2
 
     context.load_cert_chain(certfile="server.crt", keyfile="server_rsa_private.pem.unsecure")
     context.load_verify_locations("ca.crt")

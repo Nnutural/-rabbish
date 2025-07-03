@@ -12,20 +12,25 @@ from serializer import serialize, deserialize
 active_transfers = {} # 用于存储当前正在接收的文件传输信息
 
 def recv_msg(ssl_connect_sock):
-    client_data_bytes = ssl_connect_sock.recv(4) # 先接收4个字节，表示数据长度
-    if not client_data_bytes:
-        print("客户端已断开连接。")
-        return None
+    try:
+        client_data_bytes = ssl_connect_sock.recv(4)
+        if not client_data_bytes:
+            return None
 
-    datalength = int.from_bytes(client_data_bytes, byteorder='big')
-    json_bytes = ssl_connect_sock.recv(datalength)
-    if not json_bytes:
-        return None
+        datalength = int.from_bytes(client_data_bytes, byteorder='big')
+        json_bytes = ssl_connect_sock.recv(datalength)
+        if not json_bytes:
+            return None
 
-    # 解码并反序列化未dataclass对象
-    msg_dict = json.loads(json_bytes.decode("UTF-8"))
-    received_msg = deserialize(msg_dict)
-    return received_msg
+        msg_dict = json.loads(json_bytes.decode("UTF-8"))
+        received_msg = deserialize(msg_dict)
+        return received_msg
+    except (ConnectionResetError, BrokenPipeError):
+        print("与服务器的连接已断开。")
+        return None
+    except Exception as e:
+        print(f"接收服务器消息时出错: {e}")
+        return None
 
 def recv_large_data(ssl_connect_sock, login_id): # 默认为写入通讯录
     # 这个函数现在只处理一个文件传输事务，完成后就返回。
@@ -212,15 +217,40 @@ def handle_backup(ssl_connect_sock):
 '''
 这里将调用客户端处理的事务，并返回结果给客户端(对端)
 '''
-def handle_send_message(msg: S.MessageMsg):
-    print("I'm in send message")
+def handle_send_message(ssl_connect_sock, msg: S.MessageMsg):
+    try:
+        # The `serialize` function already creates the full payload with the length prefix.
+        # We just need to send its output directly. This fixes the "double prefix" bug.
+        payload = serialize(msg)
+        ssl_connect_sock.sendall(payload)
+        print("==== I'm in send message ====")
+        return True
+    except (BrokenPipeError, ConnectionResetError):
+        print("\n[Chat] Connection lost while trying to send.")
+        return False
 
-def handle_send_voice(msg: S.VoiceMsg):
-    print("I'm in send voice")
+def handle_send_voice(ssl_connect_sock, msg: S.VoiceMsg):
+    try:
+        ssl_connect_sock.sendall(serialize(msg))
+        print("==== I'm in send voice ====")
+        return True
+    except (BrokenPipeError, ConnectionResetError):
+        return False
 
-def handle_send_file(msg: S.FileMsg):
-    print("I'm in send file")
+def handle_send_file(ssl_connect_sock, msg: S.FileMsg):
+    try:
+        print("==== I'm in send file ====")
+        ssl_connect_sock.sendall(serialize(msg))
+        return True
+    except (BrokenPipeError, ConnectionResetError):
+        return False
+    
 
-def handle_send_image(msg: S.ImageMsg):
-    print("I'm in send image")
-
+def handle_send_image(ssl_connect_sock, msg: S.ImageMsg):
+    try:
+        print("==== I'm in send image ====")
+        ssl_connect_sock.sendall(serialize(msg))
+        return True
+    except (BrokenPipeError, ConnectionResetError):
+        return False
+  

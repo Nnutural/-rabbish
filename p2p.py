@@ -89,6 +89,12 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, peer_
     except skt.gaierror:
         print(f"错误: 无法解析主机名 '{peer_hostname}' 或 IP '{server_ip_port[0]}'")
         return None
+    except ssl.SSLError as e:
+        print(f"SSL握手失败: {e}")
+        return None
+    except ConnectionResetError:
+        print(f"连接已重置。")
+        return None
     except Exception as e:
         print(f"创建安全连接时发生未知错误: {e}")
         return None
@@ -105,7 +111,10 @@ def send_p2p_msg(ssl_connect_sock, msg_obj):
     return True
 
 def recv_p2p_msg(ssl_connect_sock):
-    """Receives and deserializes a P2P message object."""
+    """
+    Receives and deserializes a P2P message object.
+    This is used for P2P communication within this file.
+    """
     try:
         len_bytes = ssl_connect_sock.recv(4)
         if not len_bytes:
@@ -114,9 +123,18 @@ def recv_p2p_msg(ssl_connect_sock):
         json_bytes = ssl_connect_sock.recv(msg_len)
         if not json_bytes:
             return None
+            
+        # The utf-8 decode error happened here because json_bytes
+        # contained an extra, invalid length prefix.
         msg_dict = json.loads(json_bytes.decode("UTF-8"))
         return deserialize(msg_dict)
-    except (ConnectionResetError, json.JSONDecodeError):
+        
+    except (ConnectionResetError, json.JSONDecodeError) as e:
+        print(f"\n[Chat] Error receiving P2P message: {e}")
+        return None
+    except UnicodeDecodeError as e:
+        # This is the error you were seeing. It's useful to log it if it happens again.
+        print(f"\n[Chat] CRITICAL: UnicodeDecodeError during P2P receive: {e}")
         return None
 # --- P2P LISTENER LOGIC (Runs in a separate thread) ---
 
@@ -191,12 +209,12 @@ def receiver_thread_func(ssl_connect_sock, friend_name: str):
         if msg is None:
             print(f"\n[Chat] {friend_name} has disconnected. Press Enter to exit chat.")
             break
-        if isinstance(msg, S.MessageMsg) and msg.receiver_name == friend_name:
+        if isinstance(msg, S.MessageMsg)  and msg.sender_name == friend_name:
             # \r moves cursor to beginning of line, then we overwrite the "You: " prompt
             print(f"\r[{msg.sender_name} says]: {msg.content}      ")
             print("You: ", end="", flush=True) # Re-print the input prompt
 
-def start_p2p_chat(friend_name, ip, port):
+def start_p2p_chat(friend_name, ip, port, current_user):
     """
     Initiates a P2P chat session with a friend.
     """
@@ -246,7 +264,7 @@ def start_p2p_chat(friend_name, ip, port):
                 # Create and send the message object
                 msg_to_send = S.MessageMsg(
                     message_id = str(uuid.uuid4()),
-                    sender_name = MY_USERNAME, ## 用户名什么时候赋值？？
+                    sender_name = current_user, ## 用户名什么时候赋值？？
                     receiver_name = friend_name,
                     content = msg_content, 
                     time=int(time.time())
@@ -294,7 +312,7 @@ def init_directory(ssl_connect_sock, current_user):
     # --- MODIFICATION END ---
 
 
-def choose_friend(ssl_connect_sock, choice):
+def choose_friend(ssl_connect_sock, choice, current_user):
     if choice == "exit":
         return None # 返回 None 表示希望主程序退出
 
@@ -320,7 +338,7 @@ def choose_friend(ssl_connect_sock, choice):
                 ip, port_str = address_str.split(':')
                 port = int(port_str)
                 # HERE IS THE KEY CHANGE: We call the chat function
-                start_p2p_chat(choice, ip, port)
+                start_p2p_chat(choice, ip, port, current_user)
 
                 # !!! After chat ends, we return True to go back to the contact list
                 return True
@@ -330,6 +348,16 @@ def choose_friend(ssl_connect_sock, choice):
                 return True # 地址格式错误，让用户重新选择
 
         else: # 好友离线
+            '''
+            1. 
+            2. 向服务器发送离线消息
+            3. 更新好友的通讯录
+            4. 更新自己的通讯录
+            5. 更新服务器上的通讯录
+            6. 更新服务器上的历史记录
+            7. 更新自己的历史记录
+            8. 更新好友的历史记录
+            '''
             print(f"======= {choice} is offline. You can leave an offline message. =======")
             return True # 返回 True 表示继续循环，让用户重新选择
     else:
