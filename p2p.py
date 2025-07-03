@@ -7,13 +7,16 @@ from serializer import serialize, deserialize
 import threading
 import pprint
 import time
+import uuid
 # --- MODIFICATION START ---
 # contacts_map {"张三": {"id": 1, "name": "张三", ...}, "李四": {...}}
 contacts_map = {}
 # --- MODIFICATION END ---
 # A global variable to hold the current user's name after login
 MY_USERNAME = "" 
+CA_FILE = "ca.crt"
 CLIENT_CERT_FILE = "client.crt"
+SERVER_HOSTNAME = 'SERVER'  # 可能生成时需要修改
 CLIENT_KEY_FILE = "client_rsa_private.pem.unsecure"
 
 # --- NEW ENCAPSULATED FUNCTION ---
@@ -78,12 +81,12 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, serve
         print(f"创建安全连接时发生未知错误: {e}")
         return None
 
-def send_p2p_msg(sock, msg_obj):
+def send_p2p_msg(ssl_connect_sock, msg_obj):
     """Serializes and sends a P2P message object with a length prefix."""
     json_bytes = serialize(msg_obj)
     msg_len_bytes = len(json_bytes).to_bytes(4, byteorder='big')
     try:
-        sock.sendall(msg_len_bytes + json_bytes)
+        ssl_connect_sock.sendall(msg_len_bytes + json_bytes)
     except (BrokenPipeError, ConnectionResetError):
         print("\n[Chat] Connection lost.")
         return False
@@ -114,11 +117,11 @@ def handle_incoming_chat(conn: skt.socket, addr):
     try:
         with conn:
             while True:
-                msg = recv_p2p_msg(conn)
+                msg = recv_p2p_msg(conn) # 接收到了发送给当前用户的消息
                 if msg is None:
                     print(f"\n[Chat] Peer {addr} has disconnected.")
                     break
-                if isinstance(msg, S.MessageMsg):
+                if isinstance(msg, S.MessageMsg): # 应该保存到历史记录，等待查看
                     print(f"\r[{msg.sender_name} says]: {msg.content}      ")
                     print("You: ", end="", flush=True) # Re-print the input prompt
                 else:
@@ -138,26 +141,28 @@ def p2p_listener(p2p_server_sock):
     while True:
         try:
             conn, addr = p2p_server_sock.accept()
+
             # Start a new thread to handle the chat, so the listener can accept more connections
             handler_thread = threading.Thread(target=handle_incoming_chat, args=(conn, addr), daemon=True)
             handler_thread.start()
+
         except Exception as e:
             print(f"[P2P Listener] Error accepting connections: {e}")
             break
 
 # --- P2P CHAT INITIATOR LOGIC ---
 
-def receiver_thread_func(sock: skt.socket, friend_name: str):
+def receiver_thread_func(ssl_connect_sock, friend_name: str):
     """
     Dedicated thread to only receive messages from a friend.
     This is for the person who INITIATED the chat.
     """
     while True:
-        msg = recv_p2p_msg(sock)
+        msg = recv_p2p_msg(ssl_connect_sock)
         if msg is None:
             print(f"\n[Chat] {friend_name} has disconnected. Press Enter to exit chat.")
             break
-        if isinstance(msg, S.MessageMsg):
+        if isinstance(msg, S.MessageMsg) and msg.receiver_name == friend_name:
             # \r moves cursor to beginning of line, then we overwrite the "You: " prompt
             print(f"\r[{msg.sender_name} says]: {msg.content}      ")
             print("You: ", end="", flush=True) # Re-print the input prompt
@@ -168,13 +173,26 @@ def start_p2p_chat(friend_name, ip, port):
     """
     print(f"--- Attempting to connect to {friend_name} at {ip}:{port} ---")
     try:
-        with skt.socket(skt.AF_INET, skt.SOCK_STREAM) as p2p_client_sock:
-            p2p_client_sock.connect((ip, port))
+        ssl_connect_sock = create_secure_connection(
+            server_ip_port = (ip, port),
+            ca_file = CA_FILE,
+            cert_file = CLIENT_CERT_FILE,
+            key_file = CLIENT_KEY_FILE,
+            server_hostname = SERVER_HOSTNAME
+        )
+
+        if not ssl_connect_sock:
+            print(f"连接失败，请检查网络连接和证书文件。")
+            return
+
+        # with skt.socket(skt.AF_INET, skt.SOCK_STREAM) as p2p_client_sock:
+        #     p2p_client_sock.connect((ip, port))
+        with ssl_connect_sock:
             print(f"--- Connection successful! You can now chat with {friend_name}. ---")
             print("--- Type '/exit' to end the chat. ---")
             
             # Start a thread to listen for incoming messages
-            recv_thread = threading.Thread(target=receiver_thread_func, args=(p2p_client_sock, friend_name), daemon=True)
+            recv_thread = threading.Thread(target=receiver_thread_func, args=(ssl_connect_sock, friend_name), daemon=True)
             recv_thread.start()
 
             # Main thread loop for sending messages
@@ -182,16 +200,29 @@ def start_p2p_chat(friend_name, ip, port):
                 msg_content = input("You: ")
                 if not recv_thread.is_alive(): # Check if the friend disconnected
                     break
-                if msg_content.strip().lower() == '/exit':
+                if msg_content.strip().lower() == '/exit': # 退出当前聊天事件
                     break
                 
+                '''
+                此处决定发送什么种类的消息
+                '''
+                if msg_content.startswith('/file'):
+                    pass
+                if msg_content.startswith('/voice'):
+                    pass
+                if msg_content.startswith('/image'):
+                    pass
+                
+
                 # Create and send the message object
                 msg_to_send = S.MessageMsg(
-                    content=msg_content, 
-                    sender_name=MY_USERNAME, 
+                    message_id = str(uuid.uuid4()),
+                    sender_name = MY_USERNAME, ## 用户名什么时候赋值？？
+                    receiver_name = friend_name,
+                    content = msg_content, 
                     time=int(time.time())
                 )
-                if not send_p2p_msg(p2p_client_sock, msg_to_send):
+                if not send_p2p_msg(ssl_connect_sock, msg_to_send, ):
                     break # Stop if sending fails
 
     except ConnectionRefusedError:

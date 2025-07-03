@@ -135,7 +135,7 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
             return
         
         # 该主机上监听接口唯一，如果更换账号则在login时更换监听端口
-        listening_thread = threading.Thread(target = P.p2p_listener, args=(p2p_server_sock), daemon=True) # 登录成功后就开始监听
+        listening_thread = threading.Thread(target = P.p2p_listener, args=(p2p_server_sock, ), daemon=True) # 登录成功后就开始监听
         listening_thread.start()
 
         # with skt.socket(skt.AF_INET, skt.SOCK_STREAM) as s:

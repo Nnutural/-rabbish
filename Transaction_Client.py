@@ -100,6 +100,11 @@ def recv_large_data(ssl_connect_sock, login_id):
                 # 清理
                 del active_transfers[transfer_id]
                 return 
+
+def save_msg():
+    pass
+
+
         
 
 '''
@@ -133,7 +138,6 @@ def handle_register(ssl_connect_sock):
         return None
 
     return None
-
 
 
 # User to Client to Server
