@@ -5,7 +5,11 @@ import socket as skt
 import ssl
 import json
 import pprint
+import base64
+import binascii
 from serializer import serialize, deserialize
+
+active_transfers = {} # 用于存储当前正在接收的文件传输信息
 
 def recv_msg(ssl_connect_sock):
     client_data_bytes = ssl_connect_sock.recv(4) # 先接收4个字节，表示数据长度
@@ -22,6 +26,81 @@ def recv_msg(ssl_connect_sock):
     msg_dict = json.loads(json_bytes.decode("UTF-8"))
     received_msg = deserialize(msg_dict)
     return received_msg
+
+# 在 Transaction_Client.py 文件中
+
+# ... 其他代码 ...
+
+def recv_large_data(ssl_connect_sock, login_id):
+    # 这个函数现在只处理一个文件传输事务，完成后就返回。
+    while True:
+        # 等待 StartTransfer, DataChunk, 或 EndTransfer
+        received_msg = recv_msg(ssl_connect_sock)
+        if received_msg is None:
+            print("[文件接收] 接收过程中连接中断。")
+            return # 发生错误，返回
+
+        # --- 新的分包处理逻辑 ---
+        if received_msg.tag.name == "StartTransfer" and received_msg.transfer_id == login_id:
+            transfer_id = received_msg.transfer_id
+            print(f"\n[文件接收] 开始接收 '{received_msg.file_name}' ({received_msg.total_size} bytes)...")
+            active_transfers[transfer_id] = {
+                "file_name": received_msg.file_name,
+                "total_chunks": received_msg.total_chunks,
+                "data": bytearray(),
+                "chunks_received": 0
+            }
+
+        elif received_msg.tag.name == "DataChunk":
+            transfer_id = received_msg.transfer_id
+            if transfer_id in active_transfers:
+                transfer = active_transfers[transfer_id]
+
+                # --- START OF MODIFICATION ---
+                # Decode the Base64 string back to bytes
+                try:
+                    decoded_data = base64.b64decode(received_msg.data)
+                    transfer["data"].extend(decoded_data)
+                except (binascii.Error, TypeError) as e:
+                    print(f"\n[文件接收] Base64解码失败: {e}")
+                    # Decide how to handle this error, e.g., cancel the transfer
+                    del active_transfers[transfer_id]
+                    return # Exit the function
+                # --- END OF MODIFICATION ---
+
+                transfer["chunks_received"] += 1
+
+        elif received_msg.tag.name == "EndTransfer":
+            transfer_id = received_msg.transfer_id
+            if transfer_id in active_transfers:
+                print(f"\n[文件接收] '{active_transfers[transfer_id]['file_name']}' 接收完成!")
+                
+                full_data = active_transfers[transfer_id]["data"]
+                
+                # 检查文件名以确认是通讯录
+                if active_transfers[transfer_id]['file_name'] == 'directory.json':
+                    try:
+                        # 增加一个防御性检查：如果数据为空，则视为空的JSON对象
+                        if not full_data:
+                            print("[客户端] 通讯录文件为空，初始化为空目录。")
+                            directory_dict = {}
+                        else:
+                            directory_dict = json.loads(full_data.decode('utf-8'))
+                        
+                        # 写入本地文件
+                        with open("data.json", 'w', encoding='utf-8') as f:
+                             json.dump(directory_dict, f, indent=2, ensure_ascii=False)
+                        print("[客户端] 通讯录已更新。")
+
+                    except json.JSONDecodeError as e:
+                        print(f"[客户端] 处理通讯录数据失败：无效的JSON格式。 {e}")
+                    except Exception as e:
+                        print(f"[客户端] 处理通讯录数据时发生未知错误: {e}")
+                
+                # 清理
+                del active_transfers[transfer_id]
+                return 
+        
 
 '''
 这里将调用客户端处理的事务，并返回结果给服务器
@@ -82,12 +161,7 @@ def handle_login(ssl_connect_sock, my_p2p_port):
         如果接收到到消息且接收者为本人
         则将消息根据发送id保存到历史记录，等ui显示    
         '''
-
-   
-
-
-
-
+        recv_large_data(ssl_connect_sock, received_msg.transfer_id)
 
         return True
     

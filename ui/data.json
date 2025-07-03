@@ -1,0 +1,453 @@
+{
+    "contacts": [
+        {
+            "id": 1,
+            "name": "张三",
+            "status": "online",
+            "address": "192.168.1.101:8080"
+        },
+        {
+            "id": 2,
+            "name": "李四",
+            "status": "offline"
+        },
+        {
+            "id": 3,
+            "name": "王五",
+            "status": "online",
+            "address": "192.168.1.103:8080"
+        },
+        {
+            "id": 4,
+            "name": "赵六",
+            "status": "online",
+            "address": "192.168.1.104:8080"
+        },
+        {
+            "id": 5,
+            "name": "陈七",
+            "status": "online",
+            "address": "192.168.1.105:8080"
+        },
+        {
+            "id": 6,
+            "name": "孙八",
+            "status": "offline"
+        },
+        {
+            "id": 7,
+            "name": "周九",
+            "status": "online",
+            "address": "192.168.1.107:8080"
+        }
+    ],
+    "messages": {
+        "1": [
+            {
+                "date": "2023-11-03",
+                "messages": [
+                    {
+                        "sender": "contact",
+                        "content": "嗨，周末的聚会计划定下来了吗？",
+                        "time": "10:25:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "还没呢，你有什么建议？",
+                        "time": "10:26:00"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "我知道市中心新开了一家意大利餐厅，评价很不错",
+                        "time": "10:27:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "听起来很棒！具体地址和名字是？",
+                        "time": "10:28:00"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "Bella Vita 意大利餐厅，在胜利路123号",
+                        "time": "10:30:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "太好了，我会通知其他人。晚上7点怎么样？",
+                        "time": "10:32:00"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "没问题，周六见！",
+                        "time": "10:33:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025-07-01",
+                "messages": [
+                    {
+                        "sender": "contact",
+                        "content": "周末聚会在哪里见面？需要我发定位吗？",
+                        "time": "10:45:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025-07-02",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "和",
+                        "time": "15:00:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "你说呢",
+                        "time": "15:00:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "好的",
+                        "time": "15:04:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "你好",
+                        "time": "15:20:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "iii",
+                        "time": "16:05:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "好的",
+                        "time": "16:30:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:18:07"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:18:12"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:18:20"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "f",
+                        "time": "19:27:40"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "放入",
+                        "time": "20:24:19"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "20:47:45"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "1、",
+                        "time": "00:15:04"
+                    }
+                ]
+            }
+        ],
+        "2": [
+            {
+                "date": "2023-11-02",
+                "messages": [
+                    {
+                        "sender": "contact",
+                        "content": "项目计划已经发给你了",
+                        "time": "09:30:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "收到，我下午看完给你反馈",
+                        "time": "09:32:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "收到，我下午看完给你反馈",
+                        "time": "18:52:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "3",
+                        "time": "19:26:30"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:26:33"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "19:26:35"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "6",
+                        "time": "19:27:26"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "3",
+                        "time": "19:27:31"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "3",
+                        "time": "19:27:32"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "3",
+                        "time": "19:27:33"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "3",
+                        "time": "19:27:35"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "图片: 2_20250703_001933.png",
+                        "time": "00:19:33"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "2",
+                        "time": "00:20:59"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "00:21:02"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "g",
+                        "time": "00:21:05"
+                    }
+                ]
+            }
+        ],
+        "5": [
+            {
+                "date": "2025-07-02",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "和",
+                        "time": "15:41:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:11:00"
+                    }
+                ]
+            }
+        ],
+        "4": [
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:37:00"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "00:23:12"
+                    }
+                ]
+            }
+        ],
+        "3": [
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "11",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "11",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "5",
+                        "time": "19:23:23"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "5",
+                        "time": "19:23:32"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:23:43"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "20:47:49"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "20:58:29"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "21:42:35"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "21:43:19"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "21:47:54"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "d",
+                        "time": "21:47:58"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "实现",
+                        "time": "21:50:43"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "00:12:09"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "2",
+                        "time": "00:12:12"
+                    }
+                ]
+            }
+        ],
+        "6": [
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:18:28"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "19:27:21"
+                    }
+                ]
+            }
+        ]
+    }
+}

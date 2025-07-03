@@ -7,6 +7,8 @@ import json
 import uuid
 import os
 import pprint
+import math
+import base64
 from serializer import serialize, deserialize
 from dataclasses import asdict
 from typing import Any, Dict, List
@@ -44,9 +46,6 @@ def save_users_to_json(filename: str, users: List[Dict[str, Any]]) -> None:
         json.dump(users, f, indent=4, ensure_ascii=False)
     print(f"[服务器日志] 用户数据已保存到 {filename}。")
 
-
-
-
 def recv_msg(ssl_connect_sock):
     try:
         header_bytes = ssl_connect_sock.recv(4) # 先接收4个字节，表示数据长度
@@ -79,6 +78,70 @@ def recv_msg(ssl_connect_sock):
         print(f"JSON 解码错误: {e}")
         return None
 
+# subpackage
+# 定义一个常量
+CHUNK_SIZE = 4096 # 每次发送 4KB，这是一个常用的大小
+
+def send_large_data(ssl_connect_sock, data_bytes: bytes, file_name: str, id: str):
+    """
+    将大的二进制数据分块发送给指定的socket。
+    这个函数会处理整个 Start -> Chunk -> End 的流程。
+    """
+    try:
+        # 1. 准备元数据
+        
+        total_size = len(data_bytes)
+        total_chunks = math.ceil(total_size / CHUNK_SIZE)
+
+        # 2. 发送 StartTransferMsg
+        start_msg = S.StartTransferMsg(
+            transfer_id = id,
+            file_name = file_name,
+            total_size = total_size,
+            total_chunks = total_chunks,
+            chunk_size = CHUNK_SIZE
+        )
+        ssl_connect_sock.sendall(serialize(start_msg))
+        print(f"[服务器日志] 开始传输 '{file_name}' (ID: {id}), 共 {total_chunks} 块。")
+
+        # 3. 循环发送 DataChunkMsg
+        for i in range(total_chunks):
+            start = i * CHUNK_SIZE
+            end = start + CHUNK_SIZE
+            data_chunk = data_bytes[start:end]
+
+            # --- START OF MODIFICATION ---
+            # Encode the binary chunk into a Base64 string
+            encoded_chunk_str = base64.b64encode(data_chunk).decode('ascii')
+            # --- END OF MODIFICATION ---
+            
+            
+            chunk_msg = S.DataChunkMsg(
+                transfer_id = id,
+                chunk_index = i,
+                data =  encoded_chunk_str
+            )
+            ssl_connect_sock.sendall(serialize(chunk_msg))
+            # print(f"  > 已发送块 {i+1}/{total_chunks}") # 可选：用于调试
+            # time.sleep(0.001) # 可选：防止网络拥塞，但TCP的流控通常能处理
+
+        # 4. 发送 EndTransferMsg
+        end_msg = S.EndTransferMsg(transfer_id = id, status='success')
+        ssl_connect_sock.sendall(serialize(end_msg))
+        print(f"[服务器日志] 传输 '{file_name}' (ID: {id}) 完成。")
+        return True
+
+    except Exception as e:
+        print(f"[服务器错误] 传输 '{file_name}' 失败: {e}")
+        # (可选) 可以尝试发送一个 'cancelled' 的 EndTransferMsg
+        try:
+            end_msg = S.EndTransferMsg(transfer_id = id, status='cancelled')
+            ssl_connect_sock.sendall(serialize(end_msg))
+        except Exception:
+            pass # 如果发送也失败，就没办法了
+        return False
+
+
 '''
 这里将处理服务器端的事务，并返回结果给客户端
 '''
@@ -97,18 +160,19 @@ def handle_register(msg: S.RegisterMsg,):
 
     # 创建新的用户记录，使用 user_id
     new_user_record = {
-        "user_id": new_user_id,
-        "username": msg.username,
-        "email": msg.email,
-        "pass_hash": pass_hash,
-        "created_at": int(time.time())
+        "user_id"    : new_user_id,
+        "username"   : msg.username,
+        "email"      : msg.email,
+        "pass_hash"  : pass_hash,
+        "created_at" : int(time.time()),
+        "address"    : None
     }
     USER_LIST.append(new_user_record)
     
     # 将更新后的用户列表保存到文件
     save_users_to_json("data/users.json", USER_LIST)
     
-    print(f"[服务器日志] 用户 '{msg.username}' 创建成功, user_id: {new_user_id}。\n")
+    print(f"[服务器日志] 用户 '{msg.username}' 创建成功, user_id: {new_user_id}。\n") # 应该查看使用否有对应的通讯录文件
     response = S.SuccessRegisterMsg(
         username = msg.username, 
         user_id=new_user_id,
@@ -117,7 +181,7 @@ def handle_register(msg: S.RegisterMsg,):
     return response 
     
 
-def handle_login(msg: S.LoginMsg, user_ip, user_port):
+def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
     print("I'm in login, the listening port is {}".format(msg.port))
     '''读取json
     6. 更新用户在线状态，保存监听端口信息
@@ -146,29 +210,35 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port):
         if found_username and 'user_id' in user_record:
             port = msg.port
             user_record['address'] = f"{user_ip}:{port}"
-
+            save_users_to_json("data/users.json", USER_LIST) # 更新用户列表 这一步也应该更新该用户好友的通讯录
             
             print(f"[服务器日志] 用户 '{found_username}' 验证成功。\n")
-            response = S.SuccessLoginMsg(username = found_username, user_id=user_record['user_id'], directory="directory.json") # 需要传送通讯录数据
-            return response
+            transfer_id = str(uuid.uuid4()) # 生成一个唯一的传输ID
+            response = S.SuccessLoginMsg(username = found_username,transfer_id = transfer_id, user_id=user_record['user_id'], directory="directory.json") # 需要传送通讯录数据
+            ssl_connect_sock.sendall(serialize(response))
+            try:
+                with open('data/directory/'+found_username+'.json', 'rb') as f: # 以二进制模式读取 , 文件名！！！！
+                    directory_bytes = f.read()
+                
+                # 调用分包发送函数
+                send_large_data(ssl_connect_sock, directory_bytes, "directory.json", transfer_id)
+
+            except FileNotFoundError:
+                print(f"[服务器错误] 未找到通讯录文件。")
+                # 可以发送一个失败的信令，或者直接不回复
+                # 为了简单，这里我们只打印日志
+            except Exception as e:
+                print(f"[服务器错误] 处理发送通讯录时出错: {e}")
+
         else:
             print(f"[服务器错误] 数据库记录不完整，无法为用户 '{login_identifier}' 创建成功登录响应。\n")
             response = S.FailLoginMsg(username = found_username, error_type="server_error", time=int(time.time()))
-            return response
+            ssl_connect_sock.sendall(serialize(response))
+
     else:
         print(f"[服务器日志] 校验失败: 用户 '{found_username or login_identifier}' 的密码不正确。\n")
         response = S.FailLoginMsg( username=found_username, error_type="incorrect_secret", time=int(time.time()))
-        return response
-
-    # if 1 == 1:
-    #     reply_msg = S.SuccessLoginMsg( # 在登录成功的消息中加入通讯录数据
-    #         username = msg.username,
-    #         user_id = str(uuid.uuid4()),
-    #         directory = "data.json",  # 通讯录数据，json格式？？可以么？？
-    #         time = int(time.time())
-    #     )
-    #     return reply_msg
-    # pass
+        ssl_connect_sock.sendall(serialize(response))
 
 def handle_logout(msg: S.LogoutMsg):
     print("I'm in logout")

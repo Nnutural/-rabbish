@@ -63,6 +63,10 @@ MESSAGE_CLASSES = {
     S.MsgTag.PublicKey: S.PublicKeyMsg,
     S.MsgTag.FailRegister: S.FailRegisterMsg,
     S.MsgTag.FailLogin: S.FailLoginMsg, 
+
+    S.MsgTag.StartTransfer: S.StartTransferMsg,
+    S.MsgTag.DataChunk: S.DataChunkMsg,
+    S.MsgTag.EndTransfer: S.EndTransferMsg,
 }
 
 def deserialize(msg_dict: dict) -> Any:

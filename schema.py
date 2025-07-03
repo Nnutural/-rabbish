@@ -38,6 +38,11 @@ class MsgTag(Enum):
     FailRegister = 28
     FailLogin = 29
 
+    # --- File Transfer Protocol ---
+    StartTransfer = 31
+    DataChunk = 32
+    EndTransfer = 33
+
 # =================================================================
 #               DATACLASSES BASED ON Message.py
 # =================================================================
@@ -168,6 +173,7 @@ class SuccessRegisterMsg:
 class SuccessLoginMsg:
     """S->C 登录成功 (Tag: 22)"""
     username: str
+    transfer_id: str  # 唯一标识本次传输，使用UUID
     user_id: Union[str, int]
     directory: str
     time: int = field(default_factory=get_timestamp)
@@ -229,3 +235,38 @@ class FailLoginMsg:
     username: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.FailLogin, init=False)
+
+@dataclass
+class StartTransferMsg:
+    """
+    通用大文件/数据传输开始的信令 (Tag: 31)
+    可以用于 S->C, C->S, P2P
+    """
+    transfer_id: str  # 唯一标识本次传输，使用UUID
+    file_name: str    # 传输内容的描述性名称 (e.g., "directory.json", "avatar.jpg")
+    total_size: int   # 总字节数
+    total_chunks: int # 总分块数
+    chunk_size: int   # 每个分块的大小
+    time: int = field(default_factory=get_timestamp)
+    tag: MsgTag = field(default=MsgTag.StartTransfer, init=False)
+
+@dataclass
+class DataChunkMsg:
+    """
+    数据块消息 (Tag: 32)
+    """
+    transfer_id: str  # 关联到哪次传输
+    chunk_index: int  # 当前是第几个块 (从0开始)
+    data: str         # 数据块的二进制内容
+    time: int = field(default_factory=get_timestamp)
+    tag: MsgTag = field(default=MsgTag.DataChunk, init=False)
+
+@dataclass
+class EndTransferMsg:
+    """
+    数据传输结束的信令 (Tag: 33)
+    """
+    transfer_id: str
+    status: str       # 'success' or 'cancelled'
+    time: int = field(default_factory=get_timestamp)
+    tag: MsgTag = field(default=MsgTag.EndTransfer, init=False)

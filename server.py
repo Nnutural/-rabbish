@@ -23,30 +23,36 @@ def msg_process(ssl_connect_sock):
             return None
 
         if received_msg.tag.name == "Login":
-            reply_msg = T.handle_login(received_msg, user_ip, user_port)        
+            reply_msg = T.handle_login(received_msg, user_ip, user_port, ssl_connect_sock)        
         
         elif received_msg.tag.name == "Register":
             reply_msg = T.handle_register(received_msg)           
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "Logout":
-            reply_msg = T.handle_logout(received_msg)
+            reply_msg = T.handle_logout(received_msg)   
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "GetDirectory":
             reply_msg = T.handle_send_directory(received_msg)
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "GetHistory":
             reply_msg = T.handle_get_history(received_msg)
-        
+            ssl_connect_sock.sendall(serialize(reply_msg))
+
         elif received_msg.tag.name == "GetPublicKey":
             reply_msg = T.handle_get_public_key(received_msg)
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "Alive":
             reply_msg = T.handle_alive(received_msg)
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "BackUp":
             reply_msg = T.handle_backup(received_msg)
-        
-        ssl_connect_sock.sendall(serialize(reply_msg))
+            ssl_connect_sock.sendall(serialize(reply_msg))
+
         return True
 
     except ConnectionResetError:

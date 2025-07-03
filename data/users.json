@@ -1,13 +1,25 @@
-
 [
-  {
-    "user_id"    : "100001",
-    "username"   : "alice",                    
-    "email"      : "alice@example.com",              
-    "pass_hash"  : "1f7ab0f127…",                           
-    "created_at" : "2025-06-28T10:21:12Z",
-    "address"    : "127.0.0.1:10000"                 
-  }
-
-
+    {
+        "user_id": "100001",
+        "username": "alice",
+        "email": "alice@example.com",
+        "pass_hash": "1f7ab0f127…",
+        "created_at": "2025-06-28T10:21:12Z",
+        "address": "127.0.0.1:10000"
+    },
+    {
+        "user_id": "e12638ac-6125-49cc-bce4-866b8f6e3c9b",
+        "username": "siakiqi",
+        "email": "sikaiqi@gmail.com",
+        "pass_hash": "8bb0cf6eb9b17d0f7d22b456f121257dc1254e1f01665370476383ea776df414",
+        "created_at": 1751506673
+    },
+    {
+        "user_id": "e5d44e1f-153a-4472-bba6-f38b8a196c48",
+        "username": "sikaiqi",
+        "email": "sikaiqi@gmail.com",
+        "pass_hash": "3981d4c398c04ce58f491b4cd76a68bd963d4704d4b2c39cfb475b4e4fe5cf77",
+        "created_at": 1751506904,
+        "address": "127.0.0.1:12556"
+    }
 ]
