@@ -4,6 +4,7 @@ import ssl
 import schema as S
 import Transaction_Client as T
 import json
+import datetime as dt
 from serializer import serialize, deserialize
 import threading
 import pprint
@@ -65,19 +66,6 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, peer_
         print("------------------------\n")
 
         return ssl_sock # 返回一个普通的socket，而不是ssl_sock
-
-# def create_connection(server_ip_port, ca_file, cert_file, key_file, server_hostname):
-#     try:
-#         # 4. 创建一个普通的TCP套接字
-#         sock = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
-
-#         # 6. 连接到服务器
-#         sock.connect(server_ip_port)
-
-#         print("------------------------\n")
-
-#         return sock # 返回一个普通的socket，而不是ssl_sock
-
     except FileNotFoundError as e:
         print(f"\n错误: 找不到证书文件 '{e.filename}'。请确保文件存在于正确的位置。")
         return None
@@ -142,10 +130,29 @@ def handle_incoming_chat(ssl_connect_sock, addr):
                     print(f"\n[Chat] Peer {addr} has disconnected.")
                     break
                 if isinstance(msg, S.MessageMsg): # 应该保存到历史记录，等待查看
-
-
                     print(f"\r[{msg.sender_name} says]: {msg.content}      ")
                     print("You: ", end="", flush=True) # Re-print the input prompt
+
+                    now = dt.datetime.now() # 保存到历史记录
+                    friend_id = msg.source_id
+                    T.save_msg(
+                        current_user = msg.receiver_name,
+                        contact_id = friend_id,
+                        sender = "contact",
+                        content = msg.content,
+                        time = now.strftime("%H:%M:%S"),
+                        date = now.strftime("%Y-%m-%d")
+                    )
+
+                elif isinstance(msg, S.PublicKeyMsg):
+                    print(f"\n[Chat] Received public key from {msg.target_name}.")
+                elif isinstance(msg, S.VoiceMsg):
+                    print(f"\n[Chat] Received voice message from {msg.sender_name}.")
+                elif isinstance(msg, S.FileMsg):
+                    print(f"\n[Chat] Received file message from {msg.sender_name}.")
+                elif isinstance(msg, S.ImageMsg):
+                    print(f"\n[Chat] Received image message from {msg.sender_name}.")
+
                 else:
                     print(f"\n[Chat] Received unknown message type from {addr}.")
     except Exception as e:
@@ -159,11 +166,9 @@ def p2p_listener(p2p_server_sock):
     p2p_ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     p2p_ssl_context.verify_mode = ssl.CERT_REQUIRED
 
-    # 2. 加载用于验证服务器的CA证书
     p2p_ssl_context.load_verify_locations(CA_FILE)
 
-    # 3. 加载客户端自己的证书和私钥（用于服务器验证客户端）
-    p2p_ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
+    p2p_ssl_context.load_cert_chain(certfile = CLIENT_CERT_FILE, keyfile = CLIENT_KEY_FILE)
 
     if not p2p_ssl_context:
         print("[P2P Listener] SSL上下文创建失败，监听线程退出。")
@@ -171,7 +176,7 @@ def p2p_listener(p2p_server_sock):
 
     print("[P2P Listener] 线程已启动，等待安全的P2P连接...")
     p2p_server_sock.listen()
-    while True:
+    while True: # 该循环内类似于服务器监听线程
         try:
             conn, addr = p2p_server_sock.accept()
             print(f"\n[P2P Listener] 接受到来自 {addr} 的TCP连接，正在进行SSL握手...")
@@ -204,10 +209,12 @@ def receiver_thread_func(ssl_connect_sock, friend_name: str):
             print(f"\r[{msg.sender_name} says]: {msg.content}      ")
             print("You: ", end="", flush=True) # Re-print the input prompt
 
-def start_p2p_chat(friend_name, ip, port, current_user):
+def start_p2p_chat(friend_name, ip, port, current_user, user_id):
     """
     Initiates a P2P chat session with a friend.
     """
+    global MY_USERNAME
+    MY_USERNAME = current_user
     print(f"--- Attempting to connect to {friend_name} at {ip}:{port} ---")
     try:
         ssl_connect_sock = create_secure_connection(
@@ -234,7 +241,7 @@ def start_p2p_chat(friend_name, ip, port, current_user):
 
             # Main thread loop for sending messages
             while True:
-                msg_content = input("You: ")
+                msg_content = input("You: ")   # <======================== 输入，需要接口提供
                 if not recv_thread.is_alive(): # Check if the friend disconnected
                     break
                 if msg_content.strip().lower() == '/exit': # 退出当前聊天事件
@@ -243,28 +250,44 @@ def start_p2p_chat(friend_name, ip, port, current_user):
                 '''
                 此处决定发送什么种类的消息
                 '''
-                if msg_content.startswith('/file'):
+                if msg_content.startswith('/file:'):
+                    file_name = msg_content.split(':')[1]
+                    T.handle_send_file(ssl_connect_sock, current_user, friend_name, file_name)
+                
+                if msg_content.startswith('/voice:'):
+                    file_name = msg_content.split(':')[1]
+                    T.handle_send_voice(ssl_connect_sock, current_user, friend_name, file_name)
                     pass
-                if msg_content.startswith('/voice'):
-                    pass
-                if msg_content.startswith('/image'):
-                    pass
+                
+                if msg_content.startswith('/image:'):
+                    file_name = msg_content.split(':')[1]
+                    T.handle_send_image(ssl_connect_sock, current_user, friend_name, file_name)
                 
 
                 # Create and send the message object
                 msg_to_send = S.MessageMsg(
                     message_id = str(uuid.uuid4()),
+                    source_id = user_id,
                     sender_name = current_user, ## 用户名什么时候赋值？？
                     receiver_name = friend_name,
                     content = msg_content, 
                     time=int(time.time())
                 )
-
                 
-
                 if not T.handle_send_message(ssl_connect_sock, msg_to_send):
                     break # Stop if sending fails
+                # 成功发送消息，立刻保存聊天记录到本地
 
+                now = dt.datetime.now()
+                friend_id = contacts_map[friend_name].get("id") # contact_map在init_directory中赋值
+                T.save_msg(
+                    current_user = current_user,
+                    contact_id = friend_id,
+                    sender = "user",
+                    content = msg_content,
+                    time = now.strftime("%H:%M:%S"),
+                    date = now.strftime("%Y-%m-%d")
+                )
     except ConnectionRefusedError:
         print(f"\n[Connection Error] {friend_name} is not available or refused the connection.")
     except Exception as e:
@@ -272,12 +295,10 @@ def start_p2p_chat(friend_name, ip, port, current_user):
     finally:
         print(f"--- Chat with {friend_name} ended. Returning to main menu. ---")
 
-
-
 def init_directory(ssl_connect_sock, current_user):
     # --- MODIFICATION START ---
     global contacts_map
-    ''' 从本地 data.json 加载联系人列表到内存中 '''
+    ''' 从本地 user/{current_user}/data.json 加载联系人列表到内存中 '''
     try:
         with open(f"user/{current_user}/data.json", "r", encoding = "UTF-8") as f:
             directory_data = json.load(f)
@@ -305,7 +326,7 @@ def init_directory(ssl_connect_sock, current_user):
     # --- MODIFICATION END ---
 
 
-def choose_friend(ssl_connect_sock, choice, current_user):
+def choose_friend(ssl_connect_sock, choice, current_user, user_id):
     if choice == "exit":
         return None # 返回 None 表示希望主程序退出
 
@@ -331,7 +352,7 @@ def choose_friend(ssl_connect_sock, choice, current_user):
                 ip, port_str = address_str.split(':')
                 port = int(port_str)
                 # HERE IS THE KEY CHANGE: We call the chat function
-                start_p2p_chat(choice, ip, port, current_user)
+                start_p2p_chat(choice, ip, port, current_user, user_id)
 
                 # !!! After chat ends, we return True to go back to the contact list
                 return True

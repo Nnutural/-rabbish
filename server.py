@@ -23,10 +23,10 @@ def msg_process(ssl_connect_sock):
             return None
 
         if received_msg.tag.name == "Login":
-            reply_msg = T.handle_login(received_msg, user_ip, user_port, ssl_connect_sock)        
+            T.handle_login(received_msg, user_ip, user_port, ssl_connect_sock)        
         
         elif received_msg.tag.name == "Register":
-            reply_msg = T.handle_register(received_msg)           
+            reply_msg = T.handle_register(received_msg, ssl_connect_sock)           
             ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "Logout":
@@ -34,24 +34,22 @@ def msg_process(ssl_connect_sock):
             ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "GetDirectory":
-            reply_msg = T.handle_send_directory(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+            T.handle_send_directory(received_msg, ssl_connect_sock)
 
-        elif received_msg.tag.name == "GetHistory":
-            reply_msg = T.handle_get_history(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+        # elif received_msg.tag.name == "GetHistory":
+        #     reply_msg = T.handle_get_history(received_msg)
+        #     ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "GetPublicKey":
-            reply_msg = T.handle_get_public_key(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+            T.handle_get_public_key(received_msg, ssl_connect_sock)
 
-        elif received_msg.tag.name == "Alive":
-            reply_msg = T.handle_alive(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+        # elif received_msg.tag.name == "Alive":
+        #     reply_msg = T.handle_alive(received_msg)
+        #     ssl_connect_sock.sendall(serialize(reply_msg))
 
-        elif received_msg.tag.name == "BackUp":
-            reply_msg = T.handle_backup(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+        # elif received_msg.tag.name == "BackUp":
+        #     reply_msg = T.handle_backup(received_msg)
+        #     ssl_connect_sock.sendall(serialize(reply_msg))
 
         return True
 
@@ -78,7 +76,6 @@ try:
 
         connect_sock, address = sk.accept()
         print(f"接受来自 {address} 的连接") # 得到了客户端socket的ip和port
-
 
         with context.wrap_socket(connect_sock, server_side=True) as ssl_connect_sock:
             while True:

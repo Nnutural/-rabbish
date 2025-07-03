@@ -92,8 +92,8 @@ class GetHistoryMsg:
 @dataclass
 class GetPublicKeyMsg:
     """C->S 获取好友公钥请求 (Tag: 6)"""
-    user_id: Union[str, int]
-    dest_id: Union[str, int]
+    request_name: str
+    target_name: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.GetPublicKey, init=False)
 
@@ -121,7 +121,7 @@ class BackupMsg:
 class MessageMsg:
     """P2P 普通消息 (Tag: 11)"""
     message_id: str
-    # source_id: Union[str, int]
+    source_id: Union[str, int]
     # dest_id: Union[str, int]
     sender_name: str
     receiver_name: str
@@ -215,15 +215,18 @@ class HistoryMsg:
 class DirectoryMsg:
     """S->C 返回通信录 (Tag: 26)"""
     # 'data' would typically be a JSON string of a list of contacts
+    transfer_id: str
     data: str
+    username: str
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.Directory, init=False)
 
 @dataclass
 class PublicKeyMsg:
     """S->C 返回公钥 (Tag: 27)"""
-    user_id: Union[str, int]
-    dest_id: Union[str, int]
+    request_name: str
+    target_name: str
+    transfer_id: str
     public_key: str # The public key itself
     time: int = field(default_factory=get_timestamp)
     tag: MsgTag = field(default=MsgTag.PublicKey, init=False)
@@ -251,6 +254,7 @@ class StartTransferMsg:
     可以用于 S->C, C->S, P2P
     """
     transfer_id: str  # 唯一标识本次传输，使用UUID
+    file_type: str    # 文件类型 'directory' or 'image' or 'voice' or 'file'
     file_name: str    # 传输内容的描述性名称 (e.g., "directory.json", "avatar.jpg")
     total_size: int   # 总字节数
     total_chunks: int # 总分块数

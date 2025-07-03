@@ -16,6 +16,7 @@ ip_port = ("127.0.0.1", 47474) # Server's ip and port
 CLIENT_CERT_FILE = "client.crt"
 CLIENT_KEY_FILE = "client_rsa_private.pem.unsecure"
 current_user = None
+user_id = None
 
 def bind_to_free_port():
     """
@@ -49,7 +50,7 @@ def msg_process(ssl_connect_sock):
         return None
 
 
-def User_evnets_process(ssl_connect_sock, current_user):
+def User_evnets_process(ssl_connect_sock, current_user, user_id):
     T.handle_get_directory(ssl_connect_sock, current_user) # update the directory from server
     P.init_directory(ssl_connect_sock, current_user) # output the local directory
     while True:
@@ -62,37 +63,36 @@ def User_evnets_process(ssl_connect_sock, current_user):
             T.handle_logout(ssl_connect_sock, current_user)
             return "logout"
         
-        if choice == "history":
-            T.handle_get_history(ssl_connect_sock, current_user)
-            continue
+        # if choice == "history":
+        #     T.handle_get_history(ssl_connect_sock, current_user)
+        #     continue
 
-        if P.choose_friend(ssl_connect_sock, choice, current_user) is None: # 这一步会进入Chat
+        if P.choose_friend(ssl_connect_sock, choice, current_user, user_id) is None: # 这一步会进入Chat
             return None
 
         P.init_directory(ssl_connect_sock, current_user) # output the local directory
         
 
-def login_screen(ssl_connect_sock, my_p2p_port) -> bool:
+def login_screen(ssl_connect_sock, my_p2p_port):
     for _ in range(10):
         opt = input("plesse input login / register / exit: ")
         if opt == "login":  # 登录时需要发送自己的监听端口
-            current_user = T.handle_login(ssl_connect_sock, my_p2p_port) # TO_DO 在boot()的端口和IP基础上，建立监听socket，等待联系人连接
-            if current_user: 
-
-                return current_user # 如果登录成功，则进入聊天界面，否则还处于for循环
+            current_user, user_id = T.handle_login(ssl_connect_sock, my_p2p_port) # TO_DO 在boot()的端口和IP基础上，建立监听socket，等待联系人连接
+            if current_user and user_id: 
+                return current_user, user_id # 如果登录成功，则进入聊天界面，否则还处于for循环
 
         elif opt == "register":
             T.handle_register(ssl_connect_sock) 
             # 注册失败/成功，都继续for循环，等待下一步动作，直到达到10次循环/exit/成功login
         
         elif opt == "exit":
-            return False
+            return None, None
             # 输入exit，则直接退出
 
         else:
             print("invalid input")
 
-    return False
+    return None, None
     # 如果循环次数达到上限，则返回False
 
 def boot(): # TO_DO 客户端首先要确定自己的端口   
@@ -130,18 +130,19 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
         #     with context.wrap_socket(s, server_hostname=SERVER_HOSTNAME) as ssl_connect_sock:
         
         with ssl_connect_sock:
-            login_result = login_screen(ssl_connect_sock, my_p2p_port)
-            if login_result:
-                current_user = login_result
+            login_name, login_id = login_screen(ssl_connect_sock, my_p2p_port)
+            if login_name and login_id:
+                current_user = login_name
+                user_id = login_id
                 while True:
-                    user_action = User_evnets_process(ssl_connect_sock, current_user)
+                    user_action = User_evnets_process(ssl_connect_sock, current_user, user_id)
                     if user_action == "exit": # 如果用户选择退出，则退出循环
                         break
                     else: # logout
-                        login_result = login_screen(ssl_connect_sock, my_p2p_port)
-                        if not login_result:
-                            break
-                        current_user = login_result  
+                        login_name, login_id = login_screen(ssl_connect_sock, my_p2p_port)
+                        if login_name and login_id:
+                            current_user = login_name
+                            user_id = login_id
 
     except (ConnectionResetError, BrokenPipeError) as e:
         print(f"\n错误: 与服务器的连接已意外断开。({e})")

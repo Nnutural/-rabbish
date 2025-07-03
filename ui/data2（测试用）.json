@@ -1,0 +1,590 @@
+{
+    "contacts": [
+        {
+            "id": 1,
+            "name": "张三",
+            "status": "online",
+            "address": "192.168.1.101:8080"
+        },
+        {
+            "id": 2,
+            "name": "李四",
+            "status": "offline"
+        },
+        {
+            "id": 3,
+            "name": "王五",
+            "status": "online",
+            "address": "192.168.1.103:8080"
+        },
+        {
+            "id": 4,
+            "name": "赵六",
+            "status": "online",
+            "address": "192.168.1.104:8080"
+        },
+        {
+            "id": 5,
+            "name": "陈七",
+            "status": "online",
+            "address": "192.168.1.105:8080"
+        },
+        {
+            "id": 6,
+            "name": "孙八",
+            "status": "offline"
+        },
+        {
+            "id": 7,
+            "name": "周九",
+            "status": "online",
+            "address": "192.168.1.107:8080"
+        }
+    ],
+    "messages": {
+        "1": [
+            {
+                "date": "2023-11-03",
+                "messages": [
+                    {
+                        "content": "嗨，周末的聚会计划定下来了吗？",
+                        "read": true,
+                        "sender": "contact",
+                        "time": "10:25:00"
+                    },
+                    {
+                        "content": "还没呢，你有什么建议？",
+                        "read": true,
+                        "sender": "user",
+                        "time": "10:26:00"
+                    },
+                    {
+                        "content": "我知道市中心新开了一家意大利餐厅，评价很不错",
+                        "read": true,
+                        "sender": "contact",
+                        "time": "10:27:00"
+                    },
+                    {
+                        "content": "听起来很棒！具体地址和名字是？",
+                        "read": true,
+                        "sender": "user",
+                        "time": "10:28:00"
+                    },
+                    {
+                        "content": "Bella Vita 意大利餐厅，在胜利路123号",
+                        "read": true,
+                        "sender": "contact",
+                        "time": "10:30:00"
+                    },
+                    {
+                        "content": "太好了，我会通知其他人。晚上7点怎么样？",
+                        "read": true,
+                        "sender": "user",
+                        "time": "10:32:00"
+                    },
+                    {
+                        "content": "没问题，周六见！",
+                        "read": true,
+                        "sender": "contact",
+                        "time": "10:33:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025-07-01",
+                "messages": [
+                    {
+                        "content": "周末聚会在哪里见面？需要我发定位吗？",
+                        "read": true,
+                        "sender": "contact",
+                        "time": "10:45:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025-07-02",
+                "messages": [
+                    {
+                        "content": "和",
+                        "read": true,
+                        "sender": "user",
+                        "time": "15:00:00"
+                    },
+                    {
+                        "content": "你说呢",
+                        "read": true,
+                        "sender": "user",
+                        "time": "15:00:00"
+                    },
+                    {
+                        "content": "好的",
+                        "read": true,
+                        "sender": "user",
+                        "time": "15:04:00"
+                    },
+                    {
+                        "content": "你好",
+                        "read": true,
+                        "sender": "user",
+                        "time": "15:20:00"
+                    },
+                    {
+                        "content": "iii",
+                        "read": true,
+                        "sender": "user",
+                        "time": "16:05:00"
+                    },
+                    {
+                        "content": "好的",
+                        "read": true,
+                        "sender": "user",
+                        "time": "16:30:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:18:07"
+                    },
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:18:12"
+                    },
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:18:20"
+                    },
+                    {
+                        "content": "f",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:40"
+                    },
+                    {
+                        "content": "放入",
+                        "read": true,
+                        "sender": "user",
+                        "time": "20:24:19"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "20:47:45"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "content": "1、",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:15:04"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "图片: 1_20250703_155700.png",
+                        "time": "15:57:00"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "🙃",
+                        "time": "16:00:59",
+                        "read": true
+                    }
+                ]
+            }
+        ],
+        "2": [
+            {
+                "date": "2023-11-02",
+                "messages": [
+                    {
+                        "content": "项目计划已经发给你了",
+                        "read": true,
+                        "sender": "contact",
+                        "time": "09:30:00"
+                    },
+                    {
+                        "content": "收到，我下午看完给你反馈",
+                        "read": true,
+                        "sender": "user",
+                        "time": "09:32:00"
+                    }
+                ]
+            },
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "content": "收到，我下午看完给你反馈",
+                        "read": true,
+                        "sender": "user",
+                        "time": "18:52:00"
+                    },
+                    {
+                        "content": "3",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:26:30"
+                    },
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:26:33"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:26:35"
+                    },
+                    {
+                        "content": "6",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:26"
+                    },
+                    {
+                        "content": "3",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:31"
+                    },
+                    {
+                        "content": "3",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:32"
+                    },
+                    {
+                        "content": "3",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:33"
+                    },
+                    {
+                        "content": "3",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:35"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "content": "图片: 2_20250703_001933.png",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:19:33"
+                    },
+                    {
+                        "content": "2",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:20:59"
+                    },
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:21:02"
+                    },
+                    {
+                        "content": "g",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:21:05"
+                    }
+                ]
+            }
+        ],
+        "3": [
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "11",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "11",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:38:00"
+                    },
+                    {
+                        "content": "5",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:23:23"
+                    },
+                    {
+                        "content": "5",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:23:32"
+                    },
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:23:43"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "20:47:49"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "20:58:29"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "21:42:35"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "21:43:19"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "21:47:54"
+                    },
+                    {
+                        "content": "d",
+                        "read": true,
+                        "sender": "user",
+                        "time": "21:47:58"
+                    },
+                    {
+                        "content": "实现",
+                        "read": true,
+                        "sender": "user",
+                        "time": "21:50:43"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:12:09"
+                    },
+                    {
+                        "content": "2",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:12:12"
+                    }
+                ]
+            }
+        ],
+        "4": [
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:37:00"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "00:23:12"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "09:14:17"
+                    },
+                    {
+                        "content": "图片: 4_20250703_091426.png",
+                        "read": true,
+                        "sender": "user",
+                        "time": "09:14:26"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "10:32:52"
+                    },
+                    {
+                        "content": "图片: 4_20250703_103259.png",
+                        "read": true,
+                        "sender": "user",
+                        "time": "10:32:59"
+                    }
+                ]
+            }
+        ],
+        "5": [
+            {
+                "date": "2025-07-02",
+                "messages": [
+                    {
+                        "content": "和",
+                        "read": true,
+                        "sender": "user",
+                        "time": "15:41:00"
+                    },
+                    {
+                        "content": "1",
+                        "read": true,
+                        "sender": "user",
+                        "time": "17:11:00"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "4",
+                        "time": "15:56:30",
+                        "read": true
+                    },
+                    {
+                        "sender": "user",
+                        "content": "图片: 5_20250703_155654.png",
+                        "time": "15:56:54"
+                    }
+                ]
+            }
+        ],
+        "6": [
+            {
+                "date": "2025/7/2",
+                "messages": [
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:18:28"
+                    },
+                    {
+                        "content": "4",
+                        "read": true,
+                        "sender": "user",
+                        "time": "19:27:21"
+                    }
+                ]
+            },
+            {
+                "date": "2025/7/3",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "图片: 6_20250703_155211.png",
+                        "time": "15:52:11"
+                    }
+                ]
+            },
+            {
+                "date": "7/3/2025",
+                "messages": [
+                    {
+                        "sender": "user",
+                        "content": "1",
+                        "time": "15:54:27",
+                        "read": true
+                    }
+                ]
+            }
+        ]
+    }
+}

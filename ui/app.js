@@ -100,7 +100,7 @@ function preprocessContacts(contacts) {
 }
 
 
-// 初始化 QWebChannel 和绑定 backend 对象
+// 初始化 QWebChannel 和绑定 backend/audioRecorder 对象
 function initWebChannel() {
     if (typeof QWebChannel === 'undefined') {
         console.error('QWebChannel 未定义');
@@ -108,6 +108,44 @@ function initWebChannel() {
     }
     new QWebChannel(qt.webChannelTransport, function(channel) {
         backend = channel.objects.backend;
+        if (channel.objects.audioRecorder) {
+            window.audioRecorder = channel.objects.audioRecorder;
+            // 录音完成信号：文件名+识别文本
+            audioRecorder.recordingFinished.connect(function(fileName, recognizedText) {
+                // 保存消息
+                if (backend && backend.saveMessage) {
+                    const now = new Date();
+                    const timeString = getCurrentTimeWithSeconds();
+                    const todayDate = now.toLocaleDateString();
+                    backend.saveMessage(currentContactId, 'user', '语音: ' + fileName, timeString, todayDate);
+                    // 延迟写入 recognized_text 字段
+                    setTimeout(function() {
+                        const msgs = appData.messages[currentContactId];
+                        if (msgs && msgs.length > 0) {
+                            const lastDay = msgs[msgs.length - 1];
+                            if (lastDay.messages && lastDay.messages.length > 0) {
+                                // 找到最后一条语音消息
+                                for (let i = lastDay.messages.length - 1; i >= 0; i--) {
+                                    const msg = lastDay.messages[i];
+                                    if (msg.content === '语音: ' + fileName) {
+                                        msg.recognized_text = recognizedText;
+                                        if (backend && backend.saveAllMessages) {
+                                            backend.saveAllMessages(appData.messages);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        refreshCurrentContactMessages();
+                    }, 800);
+                }
+            });
+        }
+        if (channel.objects.stego) {
+            window.stego = channel.objects.stego;
+            console.log('stego对象已注册', window.stego);
+        }
         console.log('QWebChannel 初始化完成，backend 可用');
     });
 }
@@ -119,6 +157,42 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     loadData();
     bindEvents();
+    setupAudioRecording(); // 新增，绑定录音按钮
+
+    // Emoji Picker 逻辑
+    const emojiBtn = document.getElementById('emoji-btn');
+    const emojiPicker = document.getElementById('emoji-picker');
+    const messageInput = document.getElementById('message-input');
+    // 常用emoji
+    const emojis = [
+        '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😜','😝','😛','🤑','🤗','🤭','🤫','🤔','🤐','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','🖕','🖐️','✋','👏','🙏','💪','🦾','🦵','🦶','👀','👁️','👅','👄','💋','🧠','🦷','🦴','👃','👂','🦻','👶','🧒','👦','👧','🧑','👱‍♂️','👱‍♀️','👨','👩','🧓','👴','👵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇','🤦','🤷','💆','💇','🚶','🏃','💃','🕺','🕴️','👯','🧖','🧘','🛌','🧑‍🤝‍🧑','👭','👫','👬','💏','💑','👪','🗣️','👤','👥','🫂','👣','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🕸️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦣','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔'
+    ];
+    emojiPicker.innerHTML = emojis.map(e => `<span>${e}</span>`).join('');
+
+    emojiBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'flex' : 'none';
+    });
+    // 点击页面其他地方关闭emoji
+    document.addEventListener('click', function(e) {
+        if (emojiPicker.style.display !== 'none') {
+            emojiPicker.style.display = 'none';
+        }
+    });
+    emojiPicker.addEventListener('click', function(e) {
+        if (e.target.tagName === 'SPAN') {
+            insertAtCursor(messageInput, e.target.textContent);
+            emojiPicker.style.display = 'none';
+        }
+    });
+
+    // 隐写按钮逻辑
+    const stegoBtn = document.getElementById('stego-btn');
+    if (stegoBtn) {
+        stegoBtn.addEventListener('click', function() {
+            showStegoModal();
+        });
+    }
 });
 
 // 载入 data.json，初始化联系人列表
@@ -247,18 +321,29 @@ function renderContacts(contacts) {
         contactItem.className = 'contact-item';
         contactItem.dataset.id = contact.id;
 
-    contactItem.innerHTML = `
-        <div class="contact-avatar">
-            <span>${contact.name ? contact.name.charAt(0) : '?'}</span>
-            <div class="contact-status ${contact.status === 'offline' ? 'status-offline' : ''}"></div>
-        </div>
-        <div class="contact-details">
-            <div class="contact-name">${contact.name}</div>
-            <div class="contact-preview">${contact.preview}</div>
-        </div>
-        <div class="contact-time">${contact.time || ''}</div>
-`;
+        // 统计未读消息数
+        let unreadCount = 0;
+        const messages = appData.messages[contact.id] || [];
+        messages.forEach(day => {
+            day.messages.forEach(msg => {
+                if (msg.sender === 'contact' && msg.read === false) {
+                    unreadCount++;
+                }
+            });
+        });
 
+        contactItem.innerHTML = `
+            <div class="contact-avatar">
+                <span>${contact.name ? contact.name.charAt(0) : '?'}</span>
+                <div class="contact-status ${contact.status === 'offline' ? 'status-offline' : ''}"></div>
+            </div>
+            <div class="contact-details">
+                <div class="contact-name">${contact.name}</div>
+                <div class="contact-preview">${contact.preview}</div>
+            </div>
+            <div class="contact-time">${contact.time || ''}</div>
+            ${unreadCount > 0 ? `<span class='unread-badge'>${unreadCount > 99 ? '99+' : unreadCount}</span>` : ''}
+        `;
 
         contactItem.addEventListener('click', () => {
             selectContact(contact.id);
@@ -289,6 +374,24 @@ function selectContact(contactId) {
         document.getElementById('current-contact-address').textContent = ` ${contact.address || ''}`;
     }
 
+    // 新增：将所有对方发来的消息设为已读
+    const messages = appData.messages[contactId] || [];
+    let hasUnread = false;
+    messages.forEach(day => {
+        day.messages.forEach(msg => {
+            if (msg.sender === 'contact' && msg.read === false) {
+                msg.read = true;
+                hasUnread = true;
+            }
+        });
+    });
+    if (hasUnread) {
+        renderContacts(appData.contacts);
+        // 持久化到data.json
+        if (backend && backend.saveAllMessages) {
+            backend.saveAllMessages(appData.messages);
+        }
+    }
 
     loadMessages(contactId);
 }
@@ -319,6 +422,8 @@ function renderMessages(messageData) {
         return;
     }
 
+    let needRefresh = false;
+
     messageData.forEach(day => {
         const dayElement = document.createElement('div');
         dayElement.className = 'message-day';
@@ -330,10 +435,48 @@ function renderMessages(messageData) {
             messageElement.className = `message-bubble message-${msg.sender === 'user' ? 'sent' : 'receive'}`;
             let contentHtml = '';
             if (typeof msg.content === 'string' && msg.content.startsWith('图片: ')) {
-                // 提取图片文件名
                 const imgName = msg.content.replace('图片: ', '').trim();
                 const imgSrc = `./image/${imgName}`;
-                contentHtml = `<img src="${imgSrc}" alt="图片" style="max-width: 100%; max-height: 300px;">`;
+                // 检查是否为隐写图片
+                if (imgName.endsWith('_stego.png')) {
+                    if (msg.stego) {
+                        // 已有stego字段，直接显示
+                        contentHtml = `<img src="${imgSrc}" alt="隐写图片" style="max-width: 100%; max-height: 300px;">
+                            <div class='stego-text' style='color:#d2691e;font-size:14px;margin-top:4px;'>隐藏信息：${msg.stego}</div>`;
+                    } else if (window.stego && stego.decodeStegoImage) {
+                        // 没有stego字段，自动解析
+                        stego.decodeStegoImage(imgName, function(hiddenText) {
+                            if (hiddenText && hiddenText.trim()) {
+                                msg.stego = hiddenText;
+                                needRefresh = true;
+                                // 持久化到data.json
+                                if (backend && backend.saveAllMessages && appData && appData.messages) {
+                                    backend.saveAllMessages(appData.messages);
+                                }
+                                // 重新渲染
+                                renderMessages(messageData);
+                            }
+                        });
+                        // 先只显示图片，解析后自动刷新
+                        contentHtml = `<img src="${imgSrc}" alt="隐写图片" style="max-width: 100%; max-height: 300px;">`;
+                    } else {
+                        // 没有stego后端，直接显示图片
+                        contentHtml = `<img src="${imgSrc}" alt="隐写图片" style="max-width: 100%; max-height: 300px;">`;
+                    }
+                } else {
+                    // 普通图片
+                    contentHtml = `<img src="${imgSrc}" alt="图片" style="max-width: 100%; max-height: 300px;">`;
+                }
+            } else if (typeof msg.content === 'string' && msg.content.startsWith('语音: ')) {
+                const audioName = msg.content.replace('语音: ', '').trim();
+                const audioSrc = `./audio/${audioName}`;
+                contentHtml = `<audio controls><source src="${audioSrc}" type="audio/wav">Your browser does not support the audio element.</audio>`;
+                // 如果有识别文本，显示在下方，否则显示识别按钮
+                if (msg.recognized_text && msg.recognized_text.trim()) {
+                    contentHtml += `<div class="recognized-text" style="color:#007bff;font-size:14px;margin-top:4px;">识别文本：${msg.recognized_text}</div>`;
+                } else {
+                    contentHtml += `<button class="recognize-btn" data-audio="${audioName}" style="margin-top:4px; background:none; border:none; cursor:pointer;" title="语音转文字"><i class="fas fa-wave-square" style="font-size:18px;color:#007bff;"></i></button>`;
+                }
             } else {
                 contentHtml = msg.content;
             }
@@ -344,6 +487,34 @@ function renderMessages(messageData) {
             messageHistory.appendChild(messageElement);
         });
     });
+
+    // 绑定识别按钮点击事件
+    setTimeout(() => {
+        document.querySelectorAll('.recognize-btn').forEach(btn => {
+            btn.onclick = function() {
+                const audioName = btn.getAttribute('data-audio');
+                if (window.audioRecorder && audioRecorder.recognizeSpeechFromFile) {
+                    audioRecorder.recognizeSpeechFromFile(audioName, function(text) {
+                        // 找到对应消息，写入 recognized_text 字段
+                        for (const day of messageData) {
+                            for (const msg of day.messages) {
+                                if (msg.content === '语音: ' + audioName) {
+                                    msg.recognized_text = text;
+                                    if (backend && backend.saveAllMessages) {
+                                        backend.saveAllMessages(appData.messages);
+                                    }
+                                    renderMessages(messageData);
+                                    return;
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    alert('后端未实现 recognizeSpeechFromFile');
+                }
+            };
+        });
+    }, 0);
 
     scrollToBottom();
 }
@@ -495,7 +666,8 @@ function sendMessage() {
     dayEntry.messages.push({
         sender: 'user',
         content: messageText,
-        time: timeString
+        time: timeString,
+        read: true
     });
 
     // 2. 界面更新
@@ -612,3 +784,215 @@ function setupWindowControls() {
 //         alert('网络错误，删除好友失败');
 //     });
 // }
+
+// 插入emoji到光标处
+function insertAtCursor(input, text) {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const value = input.value;
+    input.value = value.slice(0, start) + text + value.slice(end);
+    input.selectionStart = input.selectionEnd = start + text.length;
+    input.focus();
+}
+
+// 发送表情包消息
+function sendEmojiMessage(emoji) {
+    if (!currentContactId) return;
+    const now = new Date();
+    const timeString = getCurrentTimeWithSeconds();
+    const todayDate = now.toLocaleDateString();
+
+    // 本地保存
+    if (!appData.messages[currentContactId]) {
+        appData.messages[currentContactId] = [];
+    }
+    let dayEntry = appData.messages[currentContactId].find(day => day.date === todayDate);
+    if (!dayEntry) {
+        dayEntry = { date: todayDate, messages: [] };
+        appData.messages[currentContactId].push(dayEntry);
+    }
+    dayEntry.messages.push({
+        sender: 'user',
+        content: emoji,
+        time: timeString,
+        read: true
+    });
+
+    // 界面更新
+    const messageElement = document.createElement('div');
+    messageElement.className = 'message-bubble message-sent';
+    messageElement.innerHTML = `
+        ${emoji}
+        <div class="message-time">${timeString}</div>
+    `;
+    document.getElementById('new-messages').appendChild(messageElement);
+    scrollToBottom();
+
+    // 后端保存
+    if (backend && backend.saveMessage) {
+        backend.saveMessage(currentContactId, 'user', emoji, timeString, todayDate);
+    }
+
+    // 联系人置顶
+    const idx = appData.contacts.findIndex(c => c.id == currentContactId);
+    if (idx > 0) {
+        const [contact] = appData.contacts.splice(idx, 1);
+        appData.contacts.unshift(contact);
+        renderContacts(appData.contacts);
+    }
+    setTimeout(refreshCurrentContactMessages, 500);
+}
+
+function setupAudioRecording() {
+    const micBtn = document.getElementById('mic-action');
+    if (!micBtn) {
+        console.error('未找到麦克风按钮');
+        return;
+    }
+    let micIcon = micBtn.querySelector('i');
+    let isRecording = false;
+    micBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!window.audioRecorder) {
+            alert('未检测到Qt录音模块');
+            return;
+        }
+        if (!isRecording) {
+            window.audioRecorder.startRecording();
+            isRecording = true;
+            micIcon.classList.add('recording');
+            micIcon.style.color = '#ff3b30';
+            micBtn.title = '点击结束录音';
+        } else {
+            window.audioRecorder.stopRecording();
+            isRecording = false;
+            micIcon.classList.remove('recording');
+            micIcon.style.color = '';
+            micBtn.title = '点击开始录音';
+        }
+    });
+}
+
+function sendAudioMessage(filePath) {
+    if (!currentContactId) return;
+    const now = new Date();
+    const timeString = getCurrentTimeWithSeconds();
+    const todayDate = now.toLocaleDateString();
+    if (backend && backend.saveMessage) {
+        backend.saveMessage(currentContactId, 'user', '语音: ' + filePath, timeString, todayDate);
+        console.log('调用后端保存语音消息');
+    } else {
+        alert('后端未连接，语音消息未保存');
+    }
+    setTimeout(refreshCurrentContactMessages, 500);
+}
+
+// 隐写弹窗及逻辑
+function showStegoModal() {
+    // 如果已存在弹窗则不重复创建
+    if (document.getElementById('stego-modal')) {
+        document.getElementById('stego-modal').style.display = 'flex';
+        return;
+    }
+    // 创建弹窗
+    const modal = document.createElement('div');
+    modal.id = 'stego-modal';
+    modal.style = 'position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:999;background:rgba(0,0,0,0.32);display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div class="stego-modal-content">
+        <div class="stego-modal-title">图片隐写</div>
+        <div class="stego-modal-section">
+          <label class="stego-upload-label">
+            <input type="file" id="stego-image-input" accept="image/*" hidden>
+            <span class="stego-upload-btn">选择图片</span>
+          </label>
+          <img id="stego-image-preview" class="stego-image-preview" style="display:none;">
+        </div>
+        <div class="stego-modal-section">
+          <textarea id="stego-text-input" maxlength="100" placeholder="请输入要隐藏的文字（支持中文，最多100字）"></textarea>
+          <div class="stego-text-count"><span id="stego-char-count">0</span>/100</div>
+        </div>
+        <div class="stego-modal-actions">
+          <button id="stego-encode-btn" class="stego-main-btn">生成隐写图片</button>
+          <button id="stego-cancel-btn" class="stego-cancel-btn">取消</button>
+        </div>
+        <div id="stego-result" class="stego-result"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    // 关闭按钮
+    document.getElementById('stego-cancel-btn').onclick = function() {
+        modal.style.display = 'none';
+    };
+    // 图片选择按钮（移除多余的 JS 绑定，label 默认行为即可）
+    // document.querySelector('.stego-upload-btn').onclick = function() {
+    //     document.getElementById('stego-Image-input').click();
+    // };
+    // 图片预览
+    document.getElementById('stego-Image-input').onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                document.getElementById('stego-Image-preview').src = evt.target.result;
+                document.getElementById('stego-Image-preview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    // 字数统计
+    const textInput = document.getElementById('stego-text-input');
+    const charCount = document.getElementById('stego-char-count');
+    textInput.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+    });
+    // 生成隐写图片
+    document.getElementById('stego-encode-btn').onclick = function() {
+        const fileInput = document.getElementById('stego-Image-input');
+        const text = textInput.value.trim();
+        const resultDiv = document.getElementById('stego-result');
+        if (!fileInput.files[0]) {
+            resultDiv.textContent = '请先选择图片';
+            return;
+        }
+        if (!text) {
+            resultDiv.textContent = '请输入要隐藏的文字';
+            return;
+        }
+        // 读取图片为base64
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const base64img = evt.target.result;
+            // 调用后端 stego encode，传入发送人序号
+            if (window.stego && stego.encodeStegoImage) {
+                document.getElementById('stego-encode-btn').disabled = true;
+                resultDiv.textContent = '生成中...';
+                stego.encodeStegoImage(String(currentContactId), base64img, text, function(stegoImgPath) {
+                    resultDiv.textContent = '隐写图片已生成并发送！';
+                    // 立即插入到界面
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message-bubble message-sent';
+                    const imgSrc = `./image/${stegoImgPath}`;
+                    messageElement.innerHTML = `
+                        <img src="${imgSrc}" alt="隐写图片" style="max-width: 100%; max-height: 300px;">
+                        <div class="message-time">${getCurrentTimeWithSeconds()}</div>
+                    `;
+                    document.getElementById('new-messages').appendChild(messageElement);
+                    scrollToBottom();
+                    // 这里可以自动发送图片消息
+                    if (backend && backend.saveMessage && currentContactId) {
+                        const now = new Date();
+                        const timeString = getCurrentTimeWithSeconds();
+                        const todayDate = now.toLocaleDateString();
+                        backend.saveMessage(currentContactId, 'user', '图片: ' + stegoImgPath, timeString, todayDate);
+                    }
+                    setTimeout(refreshCurrentContactMessages, 1200);
+                    setTimeout(() => { modal.style.display = 'none'; }, 1200);
+                });
+            } else {
+                resultDiv.textContent = '后端未实现 encodeStegoImage';
+            }
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    };
+}

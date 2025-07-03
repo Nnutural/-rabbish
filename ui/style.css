@@ -6,13 +6,13 @@
 }
 
 body {
-    background: #2d2d2d;
+    background: var(--bg-color);
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     overflow: hidden;
-    color: #f0f0f0;
+    color: var(--header-text);
 }
 
 .desktop-app {
@@ -194,6 +194,7 @@ body {
     cursor: pointer;
     transition: background 0.2s;
     align-items: center;
+    position: relative;
 }
 
 .contact-item:hover {
@@ -274,8 +275,10 @@ body {
     display: flex;
     align-items: center;
     padding: 12px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color);
     gap: 15px;
+    background: var(--header-bg);
+    color: var(--header-text);
 }
 
 .chat-avatar {
@@ -298,7 +301,7 @@ body {
 .chat-name {
     font-weight: 500;
     font-size: 16px;
-    color: #f0f0f0;
+    color: var(--header-text);
 }
 
 .chat-status {
@@ -308,7 +311,7 @@ body {
 }
 .chat-address {
     font-size: 12px;
-    color: #888;
+    color: var(--secondary-text);
     margin-top: 2px;
 }
 
@@ -342,7 +345,7 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    background: rgba(30, 30, 30, 0.3);
+    background: var(--container-bg);
 }
 
 .message-day {
@@ -379,6 +382,8 @@ body {
     position: relative;
     animation: fadeIn 0.3s ease;
     line-height: 1.5;
+    background: var(--chat-bubble-bot);
+    color: var(--chat-bubble-bot-text);
 }
 
 @keyframes fadeIn {
@@ -388,16 +393,16 @@ body {
 
 .message-receive {
     align-self: flex-start;
-    background: rgba(80, 80, 80, 0.6);
+    background: var(--chat-bubble-bot);
     border-top-left-radius: 4px;
-    color: #f0f0f0;
+    color: var(--chat-bubble-bot-text);
 }
 
 .message-sent {
     align-self: flex-end;
-    background: rgba(77, 162, 240, 0.3);
+    background: var(--chat-bubble-user);
     border-top-right-radius: 4px;
-    color: white;
+    color: var(--chat-bubble-user-text);
 }
 
 .message-time {
@@ -405,15 +410,16 @@ body {
     margin-top: 5px;
     opacity: 0.7;
     text-align: right;
+    color: var(--secondary-text);
 }
 
 /* 输入区域 */
 .input-area {
     padding: 16px;
-    background: rgba(45, 45, 45, 0.7);
+    background: var(--header-bg);
     display: flex;
     gap: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color);
 }
 
 .input-actions {
@@ -429,25 +435,25 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #aaa;
+    color: var(--secondary-text);
     font-size: 16px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .input-action:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #f0f0f0;
+    background: var(--button-bg);
+    color: var(--button-text);
 }
 
 .message-input {
     flex: 1;
-    background: rgba(65, 65, 65, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
     border-radius: 18px;
     padding: 12px 18px;
     outline: none;
-    color: #f0f0f0;
+    color: var(--input-text);
     font-size: 14px;
     resize: none;
     min-height: 24px;
@@ -458,15 +464,15 @@ body {
 }
 
 .message-input::placeholder {
-    color: #888;
+    color: var(--input-placeholder);
 }
 
 .send-button {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #4da2f0;
-    color: white;
+    background: var(--button-bg);
+    color: var(--button-text);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -478,11 +484,12 @@ body {
 }
 
 .send-button:hover {
-    background: #3b92e0;
+    background: var(--button-bg-hover);
 }
 
 .send-button:disabled {
     background: #666;
+    color: #ccc;
     cursor: default;
 }
 
@@ -510,7 +517,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #4da2f0;
+    background: var(--button-bg);
 }
 
 /* Windows主题切换 */
@@ -543,7 +550,7 @@ body {
 }
 
 .light body {
-    background: #e0e0e0;
+    background: var(--bg-color);
 }
 
 .light .desktop-app {
@@ -627,4 +634,225 @@ body {
 
 .light .search-container input {
     color: #333;
+}
+
+/* 1. 主题变量定义 */
+:root {
+  --bg-color: #181A20;
+  --header-bg: #23272F;
+  --header-text: #F5F6FA;
+  --chat-bubble-user: #26324A;
+  --chat-bubble-bot: #23272F;
+  --chat-bubble-user-text: #F5F6FA;
+  --chat-bubble-bot-text: #F5F6FA;
+  --input-bg: #23272F;
+  --input-text: #F5F6FA;
+  --input-placeholder: #B0B3B8;
+  --button-bg: #1976D2;
+  --button-bg-hover: #1565C0;
+  --button-text: #FFF;
+  --border-color: rgba(255,255,255,0.08);
+  --secondary-text: #B0B3B8;
+  --container-bg: rgba(30,30,30,0.3);
+}
+
+body.light, .light {
+  --bg-color: #F5F6FA;
+  --header-bg: #FFF;
+  --header-text: #222;
+  --chat-bubble-user: #E6F0FF;
+  --chat-bubble-bot: #FFF;
+  --chat-bubble-user-text: #222;
+  --chat-bubble-bot-text: #222;
+  --input-bg: #FFF;
+  --input-text: #222;
+  --input-placeholder: #888;
+  --button-bg: #1976D2;
+  --button-bg-hover: #1565C0;
+  --button-text: #FFF;
+  --border-color: rgba(0,0,0,0.08);
+  --secondary-text: #555;
+  --container-bg: rgba(240,240,245,0.4);
+}
+
+.read-status {
+  font-size: 12px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.read-status.read {
+  color: #1976D2;
+}
+.read-status.unread {
+  color: #888;
+}
+
+.unread-badge {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 9px;
+  text-align: center;
+  line-height: 18px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.message-bubble.emoji-only {
+    font-size: 2.5em;
+    line-height: 1.2;
+    text-align: center;
+    background: transparent;
+    box-shadow: none;
+    padding: 8px 0 0 0;
+}
+
+.emoji-picker {
+    position: absolute;
+    bottom: 60px;
+    left: 60px;
+    background: #222;
+    border-radius: 10px;
+    border: 1.5px solid #444;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    width: 320px;
+    max-width: 90vw;
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: auto;
+    z-index: 20;
+    gap: 8px;
+    font-size: 24px;
+    background-clip: padding-box;
+}
+.emoji-picker span {
+    cursor: pointer;
+    padding: 4px 4px;
+    border-radius: 5px;
+    transition: background 0.15s;
+    display: inline-block;
+}
+.emoji-picker span:hover {
+    background: #444;
+}
+
+/* 隐写弹窗优化样式 */
+.stego-modal-content {
+  background: #fff;
+  padding: 32px 36px;
+  border-radius: 14px;
+  min-width: 340px;
+  max-width: 95vw;
+  box-shadow: 0 4px 24px #0001;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1.5px solid #e5e5e5;
+}
+.stego-modal-title {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 18px;
+  letter-spacing: 2px;
+  color: #222;
+}
+.stego-modal-section {
+  width: 100%;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stego-upload-label {
+  cursor: pointer;
+}
+.stego-upload-btn {
+  background: #f7f7f7;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 15px;
+  border: 1px solid #d0d0d0;
+  color: #333;
+  transition: background 0.2s;
+}
+.stego-upload-btn:hover {
+  background: #ececec;
+}
+.stego-image-preview {
+  margin-top: 10px;
+  max-width: 220px;
+  max-height: 180px;
+  border-radius: 8px;
+  border: 1.5px solid #eee;
+  box-shadow: 0 2px 8px #0001;
+  background: #fafafa;
+}
+#stego-text-input {
+  width: 100%;
+  min-height: 60px;
+  border-radius: 6px;
+  border: 1px solid #d0d0d0;
+  padding: 8px;
+  font-size: 15px;
+  resize: vertical;
+  background: #fafbfc;
+  color: #222;
+}
+.stego-text-count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 2px;
+}
+.stego-modal-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 8px;
+}
+.stego-main-btn {
+  background: #4e8cff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.stego-main-btn:hover {
+  background: #2566d6;
+}
+.stego-cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.stego-cancel-btn:hover {
+  background: #e0e0e0;
+}
+.stego-result {
+  margin-top: 14px;
+  color: #d2691e;
+  font-size: 15px;
+  min-height: 20px;
+  text-align: center;
 }

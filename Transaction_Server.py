@@ -15,6 +15,58 @@ from typing import Any, Dict, List, Set
 import hashlib
 import Contacts as C
 
+# In Transaction_Server.py
+
+# ... existing imports ...
+import ssl # 确保导入 ssl 模块
+import os  # 确保导入 os 模块
+
+# --- START OF NEW FUNCTION ---
+
+def save_client_certificate(ssl_connect_sock: ssl.SSLSocket, username: str):
+    """
+    从 SSL/TLS 连接中获取客户端证书，并以 PEM 格式保存到指定目录。
+
+    Args:
+        ssl_connect_sock: 已建立的 SSL socket 连接。
+        username (str): 与该证书关联的用户名。
+    """
+    if not username:
+        print("[证书保存] 错误: 未提供用户名，无法保存证书。")
+        return
+
+    print(f"[证书保存] 尝试为用户 '{username}' 保存证书...")
+    try:
+        # 1. 获取二进制格式 (DER) 的客户端证书
+        # a. 你的 server.py 中设置了 context.verify_mode = ssl.CERT_REQUIRED
+        # b. 这意味着如果客户端没有提供证书，TLS 握手会失败，连接根本无法建立
+        # c. 因此，在这里我们总能获取到证书
+        der_cert = ssl_connect_sock.getpeercert(binary_form=True)
+        if der_cert is None:
+            # 理论上在 CERT_REQUIRED 模式下不应该发生，但作为健壮性检查
+            print(f"[证书保存] 警告: 未能从用户 '{username}' 的连接中获取证书。")
+            return
+
+        # 2. 将 DER 格式转换为人类可读的 PEM 格式
+        pem_cert = ssl.DER_cert_to_PEM_cert(der_cert)
+
+        # 3. 定义保存路径
+        # 我们将所有用户数据统一放在 'data/users' 目录下，更整洁
+        save_dir = os.path.join('data', 'publickey', username)
+        os.makedirs(save_dir, exist_ok=True) # 如果目录不存在，则创建它
+
+        # 4. 写入文件
+        file_path = os.path.join(save_dir, f"{username}_cert.pem")
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(pem_cert)
+        
+        print(f"[证书保存] 成功! 用户 '{username}' 的证书已保存到: {file_path}")
+
+    except Exception as e:
+        print(f"[证书保存] 严重错误: 为用户 '{username}' 保存证书时失败: {e}")
+
+# --- END OF NEW FUNCTION ---
+
 def hash_password(password: str) -> str:
     """使用SHA-256对密码进行哈希处理。"""
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
@@ -83,64 +135,106 @@ def recv_msg(ssl_connect_sock):
 # 定义一个常量
 CHUNK_SIZE = 4096 # 每次发送 4KB，这是一个常用的大小
 
-def send_large_data(ssl_connect_sock, data_bytes: bytes, file_name: str, id: str):
+def send_large_data(ssl_connect_sock, username: str, file_type: str, file_name: str, id: str):
     """
     将大的二进制数据分块发送给指定的socket。
-    这个函数会处理整个 Start -> Chunk -> End 的流程。
-    """
-    try:
+    这个函数会处理整个 Start -> Chunk -> End 的流程，并根据 file_type 决定文件路径 -> data_bytes。 
 
-        # 1. 准备元数据       
+    Args:
+        ssl_connect_sock: 目标socket连接。
+        username (str): 用于构建文件路径的用户名。
+        file_type (str): 文件类型 ('directory', 'image', 'audio', 'file')。
+        file_name (str): 要传输的文件名。
+        transfer_id (str): 本次传输的唯一ID。
+    """
+    filepath = ""
+    # 1. 根据文件类型确定文件路径
+    # 注意：这里的路径是服务器端的存储结构
+    if file_type == 'directory':
+        # 通讯录文件直接在 'data/directory' 目录下，以用户名命名
+        filepath = f'data/directory/{username}.json'
+    elif file_type == 'publickey':
+        filepath = f'data/publickey/{username}/{username}_cert.pem'
+    elif file_type == 'image':
+        filepath = os.path.join('data', 'user_data', username, 'image', file_name)
+    elif file_type == 'audio':
+        filepath = os.path.join('data', 'user_data', username, 'audio', file_name)
+    elif file_type == 'file':
+        filepath = os.path.join('data', 'user_data', username, 'file', file_name)
+    else:
+        print(f"[服务器错误] 不支持的文件类型: {file_type}")
+        return False
+
+    # 2. 读取文件内容
+    try:
+        # 确保目录存在（对于未来可能的上传功能有好处）
+        server_storage_dir = os.path.dirname(filepath)
+        if not os.path.exists(server_storage_dir):
+            os.makedirs(server_storage_dir)
+
+        with open(filepath, 'rb') as f:
+            data_bytes = f.read()
+    except FileNotFoundError:
+        print(f"[服务器错误] 传输失败: 文件 '{filepath}' 未找到。")
+        # （可选）可以发送一个 'cancelled' 状态的 EndTransferMsg
+        try:
+            end_msg = S.EndTransferMsg(transfer_id = id, status='cancelled_not_found')
+            ssl_connect_sock.sendall(serialize(end_msg))
+        except Exception:
+            pass
+        return False
+    except Exception as e:
+        print(f"[服务器错误] 读取文件 '{filepath}' 时出错: {e}")
+        return False  
+    
+    # 3. 开始传输流程
+    try:
+        # 3.1 准备元数据
         total_size = len(data_bytes)
         total_chunks = math.ceil(total_size / CHUNK_SIZE)
 
-        # 2. 发送 StartTransferMsg
+        # 3.2 发送 StartTransferMsg (包含新的 file_type 字段)
         start_msg = S.StartTransferMsg(
             transfer_id = id,
+            file_type = file_type,
             file_name = file_name,
             total_size = total_size,
             total_chunks = total_chunks,
             chunk_size = CHUNK_SIZE
         )
         ssl_connect_sock.sendall(serialize(start_msg))
-        print(f"[服务器日志] 开始传输 '{file_name}' (ID: {id}), 共 {total_chunks} 块。")
+        print(f"[服务器日志] 开始传输 '{file_name}' (类型: {file_type}, ID: {id}), 共 {total_chunks} 块。")
 
-        # 3. 循环发送 DataChunkMsg
+        # 3.3 循环发送 DataChunkMsg
         for i in range(total_chunks):
             start = i * CHUNK_SIZE
             end = start + CHUNK_SIZE
             data_chunk = data_bytes[start:end]
-
-            # --- START OF MODIFICATION ---
-            # Encode the binary chunk into a Base64 string
             encoded_chunk_str = base64.b64encode(data_chunk).decode('ascii')
-            # --- END OF MODIFICATION ---
-            
             
             chunk_msg = S.DataChunkMsg(
                 transfer_id = id,
                 chunk_index = i,
-                data =  encoded_chunk_str
+                data = encoded_chunk_str
             )
             ssl_connect_sock.sendall(serialize(chunk_msg))
-            # print(f"  > 已发送块 {i+1}/{total_chunks}") # 可选：用于调试
-            # time.sleep(0.001) # 可选：防止网络拥塞，但TCP的流控通常能处理
 
-        # 4. 发送 EndTransferMsg
-        end_msg = S.EndTransferMsg(transfer_id = id, status='success')
+        # 3.4 发送 EndTransferMsg
+        end_msg = S.EndTransferMsg(transfer_id = id, status = 'success')
         ssl_connect_sock.sendall(serialize(end_msg))
         print(f"[服务器日志] 传输 '{file_name}' (ID: {id}) 完成。")
         return True
 
     except Exception as e:
         print(f"[服务器错误] 传输 '{file_name}' 失败: {e}")
-        # (可选) 可以尝试发送一个 'cancelled' 的 EndTransferMsg
         try:
-            end_msg = S.EndTransferMsg(transfer_id = id, status='cancelled')
+            end_msg = S.EndTransferMsg(transfer_id = id, status = 'cancelled')
             ssl_connect_sock.sendall(serialize(end_msg))
         except Exception:
-            pass # 如果发送也失败，就没办法了
+            pass
         return False
+
+# --- END OF MODIFICATION ---
 
 def update_friends_contact_status(username, status):
     directory_path = 'data/directory'
@@ -166,7 +260,7 @@ def update_friends_contact_status(username, status):
 '''
 这里将处理服务器端的事务，并返回结果给客户端
 '''
-def handle_register(msg: S.RegisterMsg,):
+def handle_register(msg: S.RegisterMsg, ssl_connect_sock: ssl.SSLSocket):
     print("I'm in register")         
     # 启动时加载用户数据
     USER_LIST = load_users_from_json("data/users.json")
@@ -195,6 +289,8 @@ def handle_register(msg: S.RegisterMsg,):
     
     user_dic = C.ContactManager(msg.username)
     user_dic._save_data()
+
+    save_client_certificate(ssl_connect_sock, msg.username)
     
     print(f"[服务器日志] 用户 '{msg.username}' 创建成功, user_id: {new_user_id}。\n") # 应该查看使用否有对应的通讯录文件
     response = S.SuccessRegisterMsg(
@@ -233,6 +329,8 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
         # 更新：检查 user_id
         if found_username and 'user_id' in user_record:
 
+            save_client_certificate(ssl_connect_sock, found_username)
+
             port = msg.port
             user_record['address'] = f"{user_ip}:{port}"
             save_users_to_json("data/users.json", USER_LIST) 
@@ -247,7 +345,13 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
             print(f"[服务器日志] 用户 '{found_username}' 验证成功。\n")
 
             transfer_id = str(uuid.uuid4()) # 生成一个唯一的传输ID
-            response = S.SuccessLoginMsg(username = found_username,transfer_id = transfer_id, user_id=user_record['user_id'], directory="directory.json") # 需要传送通讯录数据
+            response = S.SuccessLoginMsg(
+                username = found_username,
+                transfer_id = transfer_id, 
+                user_id=user_record['user_id'], 
+                directory="directory.json") 
+            # 需要传送通讯录数据
+
             ssl_connect_sock.sendall(serialize(response))
             
             try:
@@ -255,7 +359,13 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
                     directory_bytes = f.read()
                 
                 # 调用分包发送函数
-                send_large_data(ssl_connect_sock, directory_bytes, "directory.json", transfer_id)
+                send_large_data(
+                    ssl_connect_sock = ssl_connect_sock,
+                    username = found_username,
+                    file_type = "directory",
+                    file_name = f"data/directory/{found_username}.json",
+                    id = transfer_id
+                )
 
             except FileNotFoundError:
                 print(f"[服务器错误] 未找到通讯录文件。")
@@ -293,26 +403,65 @@ def handle_logout(msg: S.LogoutMsg):
     response = S.SuccessLogoutMsg(username=msg.username, user_id=user_record['user_id'], time=int(time.time()))
     return response
 
-def handle_send_directory(msg: S.GetDirectoryMsg):
+def handle_send_directory(msg: S.GetDirectoryMsg, ssl_connect_sock):
+    transfer_id = str(uuid.uuid4())
+    response = S.DirectoryMsg(
+        username = msg.username,
+        transfer_id = transfer_id,
+        data = "",
+        time = int(time.time()))
 
+    ssl_connect_sock.sendall(serialize(response))
+
+    send_large_data(
+        ssl_connect_sock = ssl_connect_sock,
+        username = msg.username,
+        file_type = "directory",
+        file_name = f"data/directory/{msg.username}.json",
+        id = response.transfer_id
+    )
     print("I'm in send directory")
 
+# def handle_get_history(msg: S.GetHistoryMsg):
+#     print("I'm in get history")
+#     pass
 
+def handle_get_public_key(msg: S.GetPublicKeyMsg, ssl_connect_sock: ssl.SSLSocket):
+    request = msg.request_name
+    target = msg.target_name
+    
+    id = str(uuid.uuid4())
+    response = S.PublicKeyMsg(
+        request_name = request,
+        target_name = target,
+        public_key = "",
+        transfer_id = id,
+        time = int(time.time())
+    )
 
-def handle_get_history(msg: S.GetHistoryMsg):
-    print("I'm in get history")
-    pass
+    ssl_connect_sock.sendall(serialize(response))
+    try: 
+        cert_filename = f"{target}_cert.pem"
+        pk = send_large_data(
+            ssl_connect_sock = ssl_connect_sock,
+            username = target,
+            file_type = "publickey",
+            file_name = cert_filename,
+            id = id
+        )
+        if pk:
+            print(f"[服务器日志] 成功发送公钥给 {request}。")
+        else:
+            print(f"[服务器错误] 发送公钥给 {request} 失败。")
+    except Exception as e:
+        print(f"[服务器错误] 处理发送公钥时出错: {e}")
 
-def handle_get_public_key(msg: S.GetPublicKeyMsg):
-    print("I'm in get public key")
-    pass
+# def handle_alive(msg: S.AliveMsg):
+#     print("I'm in update alive")
+#     pass
 
-def handle_alive(msg: S.AliveMsg):
-    print("I'm in update alive")
-    pass
-
-def handle_backup(msg: S.BackupMsg):
-    print("I'm in backup history")
-    pass
+# def handle_backup(msg: S.BackupMsg):
+#     print("I'm in backup history")
+#     pass
 
 

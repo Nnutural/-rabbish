@@ -40,6 +40,6 @@ def save_message(contactId, sender, content, time, date):
     data['messages'] = messages
 
     with open(data_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+        json.dump(data, f, ensure_ascii=False, indent=4) # sort_keys 默认为false
 
     print(f"消息已保存到 {data_file}")

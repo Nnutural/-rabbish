@@ -75,14 +75,16 @@
                 <div class="input-area">
                     <div class="input-actions">
                         <div class="input-action">
-                        <i class="fas fa-paperclip"></i>
+                            <i class="fas fa-paperclip"></i>
                             <!-- 隐藏的文件选择框 -->
                            <input type="file" id="file-input" accept="image/*" style="display:none;">
                         </div>
 
-                        <div class="input-action"><i class="far fa-smile"></i></div>
-                        <div class="input-action"><i class="fas fa-microphone"></i></div>
+                        <div class="input-action"><i class="far fa-smile" id="emoji-btn"></i></div>
+                        <div class="input-action" id="stego-btn" title="图片隐写"><i class="fas fa-user-secret"></i></div>
+                        <div class="input-action" id="mic-action"><i class="fas fa-microphone"></i></div>
                     </div>
+                    <div class="emoji-picker" id="emoji-picker" style="display:none;"></div>
                     <textarea class="message-input" placeholder="输入消息..." id="message-input"></textarea>
                     <button class="send-button" id="send-btn">
                         <i class="fas fa-paper-plane"></i>
@@ -99,6 +101,7 @@
 
     <!-- 数据文件将通过app.js动态加载 -->
     <script src="data.json"></script>
+    <script src="qwebchannel.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

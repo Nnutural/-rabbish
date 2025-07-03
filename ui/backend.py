@@ -9,7 +9,7 @@ class Backend(QObject):  # 让 Backend 继承 QObject
         super().__init__()
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_file = os.path.join(self.base_dir, 'data.json')
-        self.image_dir = os.path.join(self.base_dir, 'image')
+        self.image_dir = os.path.join(self.base_dir, 'Image')
 
         # 创建图片目录（如果不存在）
         if not os.path.exists(self.image_dir):
@@ -36,10 +36,15 @@ class Backend(QObject):  # 让 Backend 继承 QObject
             day_entry = {"date": date, "messages": []}
             contact_msgs.append(day_entry)
 
+        if sender == 'user':
+            read_flag = True
+        else:
+            read_flag = False
         day_entry['messages'].append({
             "sender": sender,
             "content": content,
-            "time": time
+            "time": time,
+            "read": read_flag
         })
 
         messages[str(contact_id)] = contact_msgs
@@ -113,3 +118,16 @@ class Backend(QObject):  # 让 Backend 继承 QObject
     @pyqtSlot(int, str, str, str, str)
     def saveImageMessage(self, contact_id, sender, base64_image, time, date):
         self.save_image_message(contact_id, sender, base64_image, time, date)
+
+    @pyqtSlot('QVariant')
+    def saveAllMessages(self, messages):
+        """保存所有消息到data.json，支持未读状态持久化"""
+        try:
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {"contacts": [], "messages": {}}
+        data['messages'] = messages
+        with open(self.data_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        print("所有消息已保存到 data.json")
