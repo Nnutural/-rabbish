@@ -39,8 +39,10 @@ def msg_process(ssl_connect_sock):
         reply_msg = None
         if received_msg.tag.name == "RegisterMsg": # 注意：你的schema里是RegisterMsg
             reply_msg = T.handle_register(received_msg)
+            
         elif received_msg.tag.name == "LogoutMsg":
             reply_msg = T.handle_logout(received_msg)
+
         elif received_msg.tag.name == "GetDirectory":
             reply_msg = T.handle_send_directory(received_msg)
             ssl_connect_sock.sendall(serialize(reply_msg))
