@@ -28,19 +28,18 @@ def msg_process(ssl_connect_sock):
             print("客户端已断开连接。")
             return None
 
-
         # --- 登录请求是特例，因为它需要发送分包数据，在处理函数内部发送 ---
-        if received_msg.tag.name == "LoginMsg": # 注意：你的schema里是LoginMsg
+        if received_msg.tag.name == "Login": # 注意：你的schema里是LoginMsg
             # handle_login 会自己处理发送逻辑，因为它包含大文件传输
             T.handle_login(received_msg, user_ip, user_port, ssl_connect_sock)
             return True # 即使登录失败，连接也保持
 
         # --- 其他请求，服务器处理后统一返回响应 ---
         reply_msg = None
-        if received_msg.tag.name == "RegisterMsg": # 注意：你的schema里是RegisterMsg
+        if received_msg.tag.name == "Register": # 注意：你的schema里是RegisterMsg
             reply_msg = T.handle_register(received_msg)
             
-        elif received_msg.tag.name == "LogoutMsg":
+        elif received_msg.tag.name == "Logout":
             reply_msg = T.handle_logout(received_msg)
 
         elif received_msg.tag.name == "GetDirectory":
