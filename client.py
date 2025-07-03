@@ -63,8 +63,8 @@ def msg_process(ssl_connect_sock):
     #     print(f"登录失败: {received_msg}")
 
 def User_evnets_process(ssl_connect_sock, current_user):
-    T.handle_get_directory(ssl_connect_sock) # update the directory from server
-    P.init_directory(ssl_connect_sock) # output the local directory
+    T.handle_get_directory(ssl_connect_sock, current_user) # update the directory from server
+    P.init_directory(ssl_connect_sock, current_user) # output the local directory
     while True:
         choice = input("which friend do you want to send message to: ").strip()
         if choice == "exit":
@@ -82,7 +82,7 @@ def User_evnets_process(ssl_connect_sock, current_user):
         if P.choose_friend(ssl_connect_sock, choice) is None: # 这一步会进入Chat
             return None
 
-        P.init_directory(ssl_connect_sock) # output the local directory
+        P.init_directory(ssl_connect_sock, current_user) # output the local directory
         
 
 def login_screen(ssl_connect_sock, my_p2p_port) -> bool:

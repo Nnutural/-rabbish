@@ -148,7 +148,7 @@ def handle_incoming_chat(ssl_connect_sock, addr):
 # --- MODIFIED: P2P监听器，现在使用SSL ---
 def p2p_listener(p2p_server_sock):
 
-    p2p_ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    p2p_ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     p2p_ssl_context.verify_mode = ssl.CERT_REQUIRED
 
     # 2. 加载用于验证服务器的CA证书
@@ -263,7 +263,7 @@ def start_p2p_chat(friend_name, ip, port):
 
 
 
-def init_directory(ssl_connect_sock):
+def init_directory(ssl_connect_sock, current_user):
     # --- MODIFICATION START ---
     global contacts_map
     ''' 从本地 data.json 加载联系人列表到内存中 '''

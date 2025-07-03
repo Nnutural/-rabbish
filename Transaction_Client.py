@@ -185,7 +185,7 @@ def handle_logout(ssl_connect_sock, current_user):
     return None
 
 # User to Client to Server : when login success
-def handle_get_directory(ssl_connect_sock):
+def handle_get_directory(ssl_connect_sock, current_user):
     ''' 从服务器获取联系人列表 '''
 
 
