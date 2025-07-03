@@ -2,6 +2,7 @@
 import socket as skt
 import ssl
 import schema as S
+import Transaction_Client as T
 import json
 from serializer import serialize, deserialize
 import threading
@@ -98,17 +99,6 @@ def create_secure_connection(server_ip_port, ca_file, cert_file, key_file, peer_
     except Exception as e:
         print(f"创建安全连接时发生未知错误: {e}")
         return None
-
-def send_p2p_msg(ssl_connect_sock, msg_obj):
-    """Serializes and sends a P2P message object with a length prefix."""
-    json_bytes = serialize(msg_obj)
-    msg_len_bytes = len(json_bytes).to_bytes(4, byteorder='big')
-    try:
-        ssl_connect_sock.sendall(msg_len_bytes + json_bytes)
-    except (BrokenPipeError, ConnectionResetError):
-        print("\n[Chat] Connection lost.")
-        return False
-    return True
 
 def recv_p2p_msg(ssl_connect_sock):
     """
@@ -269,7 +259,10 @@ def start_p2p_chat(friend_name, ip, port, current_user):
                     content = msg_content, 
                     time=int(time.time())
                 )
-                if not send_p2p_msg(ssl_connect_sock, msg_to_send, ):
+
+                
+
+                if not T.handle_send_message(ssl_connect_sock, msg_to_send):
                     break # Stop if sending fails
 
     except ConnectionRefusedError:
@@ -286,7 +279,7 @@ def init_directory(ssl_connect_sock, current_user):
     global contacts_map
     ''' 从本地 data.json 加载联系人列表到内存中 '''
     try:
-        with open("data.json", "r", encoding = "UTF-8") as f:
+        with open(f"user/{current_user}/data.json", "r", encoding = "UTF-8") as f:
             directory_data = json.load(f)
 
         # 使用字典推导式高效地创建 contacts_map
@@ -304,10 +297,10 @@ def init_directory(ssl_connect_sock, current_user):
         print("-------------------------\n")
 
     except FileNotFoundError:
-        print("[Error] data.json not found. Cannot load contact list.")
+        print(f"[Error] {current_user}/data.json not found. Cannot load contact list.")
         contacts_map = {}
     except json.JSONDecodeError:
-        print("[Error] Failed to parse data.json. Contact list might be corrupted.")
+        print(f"[Error] Failed to parse {current_user}/data.json. Contact list might be corrupted.")
         contacts_map = {}
     # --- MODIFICATION END ---
 

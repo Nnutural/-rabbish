@@ -8,6 +8,7 @@ import pprint
 import base64
 import binascii
 from serializer import serialize, deserialize
+import Contacts as C
 
 active_transfers = {} # 用于存储当前正在接收的文件传输信息
 
@@ -32,7 +33,7 @@ def recv_msg(ssl_connect_sock):
         print(f"接收服务器消息时出错: {e}")
         return None
 
-def recv_large_data(ssl_connect_sock, login_id): # 默认为写入通讯录
+def recv_large_data(ssl_connect_sock, id, current_user): # 默认为写入通讯录
     # 这个函数现在只处理一个文件传输事务，完成后就返回。
     while True:
         # 等待 StartTransfer, DataChunk, 或 EndTransfer
@@ -42,7 +43,7 @@ def recv_large_data(ssl_connect_sock, login_id): # 默认为写入通讯录
             return # 发生错误，返回
 
         # --- 新的分包处理逻辑 ---
-        if received_msg.tag.name == "StartTransfer" and received_msg.transfer_id == login_id:
+        if received_msg.tag.name == "StartTransfer" and received_msg.transfer_id == id:
             transfer_id = received_msg.transfer_id
             print(f"\n[文件接收] 开始接收 '{received_msg.file_name}' ({received_msg.total_size} bytes)...")
             active_transfers[transfer_id] = {
@@ -89,7 +90,7 @@ def recv_large_data(ssl_connect_sock, login_id): # 默认为写入通讯录
                         directory_dict = json.loads(full_data.decode('utf-8'))
                     
                     # 写入本地文件 这里应该根据不同的文件类型进行选择
-                    with open("data.json", 'w', encoding='utf-8') as f:
+                    with open(f"user/{current_user}/data.json", 'w', encoding='utf-8') as f:
                             json.dump(directory_dict, f, indent=2, ensure_ascii=False)
                     print("[客户端] 通讯录已更新。")
 
@@ -131,6 +132,10 @@ def handle_register(ssl_connect_sock):
     print(f"服务器回复: {received_msg}")
     if received_msg.tag.name == "SuccessRegister" and received_msg.username == inp_username:
         print(f"注册成功: {received_msg}")
+        # 在本地创建user/{username}/data.json
+        user_dic = C.ContactManager(inp_username)
+        user_dic._save_data()
+
         return True
     if received_msg.tag.name == "FailRegister" and received_msg.username == inp_username:
         print(f"注册失败: {received_msg}")
@@ -162,9 +167,9 @@ def handle_login(ssl_connect_sock, my_p2p_port):
         ''' 
         建立监听接口，等待联系人连接
         如果接收到到消息且接收者为本人
-          则将消息根据发送id保存到历史记录，等ui显示  
+        则将消息根据发送id保存到历史记录，等ui显示  
         '''
-        recv_large_data(ssl_connect_sock, received_msg.transfer_id)
+        recv_large_data(ssl_connect_sock, received_msg.transfer_id, inp_username)
 
         return received_msg.username
     

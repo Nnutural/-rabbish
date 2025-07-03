@@ -1,107 +1,32 @@
 {
     "contacts": [
-      {
-      },
-      {
-      },
-      {
-
-      },
-      {
-        "id": 4,
-        "name": "sikaiqi",
-        "status": "online",
-        "time": "周一",
-        "address": "127.0.0.1:11000"
-      },
-      {
-        "id": 5,
-        "name": "陈七",
-        "status": "online",
-        "address": "127.0.0.1:10004"
-      },
-      {
-        "id": 6,
-        "name": "孙八",
-        "status": "offline",
-        "address": "127.0.0.1:10005"
-      },
-      {
-        "id": 7,
-        "name": "周九",
-        "status": "online",
-        "address": "127.0.0.1:10006"
-      }
-    ],
-    "messages": {
-      "1": [
+        {},
+        {},
+        {},
         {
-          "date": "2023年11月3日",
-          "messages": [
-            {
-              "sender": "contact",
-              "content": "嗨，周末的聚会计划定下来了吗？",
-              "time": "10:25"
-            },
-            {
-              "sender": "user",
-              "content": "还没呢，你有什么建议？",
-              "time": "10:26"
-            },
-            {
-              "sender": "contact",
-              "content": "我知道市中心新开了一家意大利餐厅，评价很不错",
-              "time": "10:27"
-            },
-            {
-              "sender": "user",
-              "content": "听起来很棒！具体地址和名字是？",
-              "time": "10:28"
-            },
-            {
-              "sender": "contact",
-              "content": "Bella Vita 意大利餐厅，在胜利路123号",
-              "time": "10:30"
-            },
-            {
-              "sender": "user",
-              "content": "太好了，我会通知其他人。晚上7点怎么样？",
-              "time": "10:32"
-            },
-            {
-              "sender": "contact",
-              "content": "没问题，周六见！",
-              "time": "10:33"
-            }
-          ]
+            "id": 4,
+            "name": "sikaiqi",
+            "status": "offline",
+            "time": "周一",
+            "address": "127.0.0.1:11000"
         },
         {
-          "date": "今天",
-          "messages": [
-            {
-              "sender": "contact",
-              "content": "周末聚会在哪里见面？需要我发定位吗？",
-              "time": "10:45"
-            }
-          ]
-        }
-      ],
-      "2": [
+            "id": 5,
+            "name": "陈七",
+            "status": "online",
+            "address": "127.0.0.1:10004"
+        },
         {
-          "date": "2023年11月2日",
-          "messages": [
-            {
-              "sender": "contact",
-              "content": "项目计划已经发给你了",
-              "time": "09:30"
-            },
-            {
-              "sender": "user",
-              "content": "收到，我下午看完给你反馈",
-              "time": "09:32"
-            }
-          ]
+            "id": 6,
+            "name": "孙八",
+            "status": "offline",
+            "address": "127.0.0.1:10005"
+        },
+        {
+            "id": 7,
+            "name": "周九",
+            "status": "online",
+            "address": "127.0.0.1:10006"
         }
-      ]
-    }
-  }
+    ]
+}

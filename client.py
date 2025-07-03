@@ -48,19 +48,6 @@ def msg_process(ssl_connect_sock):
         print("客户端已断开连接。")
         return None
 
-    # # print(f"服务器回复: {received_msg}")
-    # # if received_msg.tag.name == "SuccessRegister":
-    # #     print(f"注册成功: {received_msg}")
-    # #     return True
-
-    # # elif received_msg.tag.name == "FailRegister":
-    # #     print(f"注册失败: {received_msg}")
-
-    # elif received_msg.tag.name == "SuccessLogin":
-    #     print(f"登录成功: {received_msg}")
-
-    # elif received_msg.tag.name == "FailLogin":
-    #     print(f"登录失败: {received_msg}")
 
 def User_evnets_process(ssl_connect_sock, current_user):
     T.handle_get_directory(ssl_connect_sock, current_user) # update the directory from server
