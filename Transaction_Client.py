@@ -27,11 +27,7 @@ def recv_msg(ssl_connect_sock):
     received_msg = deserialize(msg_dict)
     return received_msg
 
-# 在 Transaction_Client.py 文件中
-
-# ... 其他代码 ...
-
-def recv_large_data(ssl_connect_sock, login_id):
+def recv_large_data(ssl_connect_sock, login_id): # 默认为写入通讯录
     # 这个函数现在只处理一个文件传输事务，完成后就返回。
     while True:
         # 等待 StartTransfer, DataChunk, 或 EndTransfer
@@ -78,24 +74,24 @@ def recv_large_data(ssl_connect_sock, login_id):
                 full_data = active_transfers[transfer_id]["data"]
                 
                 # 检查文件名以确认是通讯录
-                if active_transfers[transfer_id]['file_name'] == 'directory.json':
-                    try:
-                        # 增加一个防御性检查：如果数据为空，则视为空的JSON对象
-                        if not full_data:
-                            print("[客户端] 通讯录文件为空，初始化为空目录。")
-                            directory_dict = {}
-                        else:
-                            directory_dict = json.loads(full_data.decode('utf-8'))
-                        
-                        # 写入本地文件
-                        with open("data.json", 'w', encoding='utf-8') as f:
-                             json.dump(directory_dict, f, indent=2, ensure_ascii=False)
-                        print("[客户端] 通讯录已更新。")
+                #if active_transfers[transfer_id]['file_name'] == 'directory.json':
+                try:
+                    # 增加一个防御性检查：如果数据为空，则视为空的JSON对象
+                    if not full_data:
+                        print("[客户端] 通讯录文件为空，初始化为空目录。")
+                        directory_dict = {}
+                    else:
+                        directory_dict = json.loads(full_data.decode('utf-8'))
+                    
+                    # 写入本地文件 这里应该根据不同的文件类型进行选择
+                    with open("data.json", 'w', encoding='utf-8') as f:
+                            json.dump(directory_dict, f, indent=2, ensure_ascii=False)
+                    print("[客户端] 通讯录已更新。")
 
-                    except json.JSONDecodeError as e:
-                        print(f"[客户端] 处理通讯录数据失败：无效的JSON格式。 {e}")
-                    except Exception as e:
-                        print(f"[客户端] 处理通讯录数据时发生未知错误: {e}")
+                except json.JSONDecodeError as e:
+                    print(f"[客户端] 处理通讯录数据失败：无效的JSON格式。 {e}")
+                except Exception as e:
+                    print(f"[客户端] 处理通讯录数据时发生未知错误: {e}")
                 
                 # 清理
                 del active_transfers[transfer_id]
@@ -103,8 +99,6 @@ def recv_large_data(ssl_connect_sock, login_id):
 
 def save_msg():
     pass
-
-
         
 
 '''
@@ -176,8 +170,19 @@ def handle_login(ssl_connect_sock, my_p2p_port):
     return None
 
 # User to Client to Server
-def handle_logout(ssl_connect_sock):
+def handle_logout(ssl_connect_sock, current_user):
+    logout_msg = S.LogoutMsg(username=current_user, time=int(time.time()))
+    ssl_connect_sock.sendall(serialize(logout_msg))
     print("I'm in logout")
+    received_msg = recv_msg(ssl_connect_sock)
+    if received_msg is None:
+        print("服务器端已断开连接。")
+        return None
+    for _ in range(10):
+        if received_msg.tag.name == "SuccessLogout" and received_msg.username == current_user:
+            print(f"注销成功: {received_msg}")
+            return True
+    return None
 
 # User to Client to Server : when login success
 def handle_get_directory(ssl_connect_sock):
@@ -185,13 +190,11 @@ def handle_get_directory(ssl_connect_sock):
 
 
     ''' 将服务器返回的联系人列表更新到本地 主要是离线时收到的消息'''
-    
-
 
     print("I'm in get directory")
 
 # User to Client to Server
-def handle_get_history(ssl_connect_sock):
+def handle_get_history(ssl_connect_sock, current_user):
     print("I'm in get history")
 
 # User to Client to Server 
@@ -210,10 +213,6 @@ def handle_backup(ssl_connect_sock):
 这里将调用客户端处理的事务，并返回结果给客户端(对端)
 '''
 def handle_send_message(msg: S.MessageMsg):
-
-
-
-
     print("I'm in send message")
 
 def handle_send_voice(msg: S.VoiceMsg):

@@ -72,11 +72,11 @@ def User_evnets_process(ssl_connect_sock, current_user):
             return "exit"
 
         if choice == "logout":
-            T.handle_logout(ssl_connect_sock)
+            T.handle_logout(ssl_connect_sock, current_user)
             return "logout"
         
         if choice == "history":
-            T.handle_get_history(ssl_connect_sock)
+            T.handle_get_history(ssl_connect_sock, current_user)
             continue
 
         if P.choose_friend(ssl_connect_sock, choice) is None: # 这一步会进入Chat

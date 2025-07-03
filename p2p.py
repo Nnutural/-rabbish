@@ -122,6 +122,8 @@ def handle_incoming_chat(conn: skt.socket, addr):
                     print(f"\n[Chat] Peer {addr} has disconnected.")
                     break
                 if isinstance(msg, S.MessageMsg): # 应该保存到历史记录，等待查看
+
+
                     print(f"\r[{msg.sender_name} says]: {msg.content}      ")
                     print("You: ", end="", flush=True) # Re-print the input prompt
                 else:
@@ -291,7 +293,6 @@ def choose_friend(ssl_connect_sock, choice):
                 port = int(port_str)
                 # HERE IS THE KEY CHANGE: We call the chat function
                 start_p2p_chat(choice, ip, port)
-
 
                 # !!! After chat ends, we return True to go back to the contact list
                 return True

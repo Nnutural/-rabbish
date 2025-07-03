@@ -3,7 +3,7 @@ import os
 from typing import List, Dict, Any, Set
 
 # 导入时间戳函数
-from shema import get_timestamp
+from schema import get_timestamp
 
 class ContactManager:
     """
