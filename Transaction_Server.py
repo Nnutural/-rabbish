@@ -348,22 +348,22 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
             response = S.SuccessLoginMsg(
                 username = found_username,
                 transfer_id = transfer_id, 
-                user_id=user_record['user_id'], 
-                directory="directory.json") 
+                user_id = user_record['user_id'], 
+                directory = "directory.json") 
             # 需要传送通讯录数据
 
             ssl_connect_sock.sendall(serialize(response))
             
             try:
-                with open('data/directory/'+found_username+'.json', 'rb') as f: # 以二进制模式读取 , 文件名！！！！
-                    directory_bytes = f.read()
+                # with open('data/directory/'+found_username+'.json', 'rb') as f: # 以二进制模式读取 , 文件名！！！！
+                #     directory_bytes = f.read()
                 
                 # 调用分包发送函数
                 send_large_data(
                     ssl_connect_sock = ssl_connect_sock,
                     username = found_username,
                     file_type = "directory",
-                    file_name = f"data/directory/{found_username}.json",
+                    file_name = f"{found_username}.json",
                     id = transfer_id
                 )
 
@@ -404,64 +404,69 @@ def handle_logout(msg: S.LogoutMsg):
     return response
 
 def handle_send_directory(msg: S.GetDirectoryMsg, ssl_connect_sock):
-    transfer_id = str(uuid.uuid4())
-    response = S.DirectoryMsg(
-        username = msg.username,
-        transfer_id = transfer_id,
-        data = "",
-        time = int(time.time()))
+    """
+    处理获取通讯录的请求。
+    直接启动一个大文件传输流程来发送通讯录文件。
+    """
+    username = msg.username
+    print(f"[服务器日志] 用户 '{username}' 请求通讯录。")
+    
+    try:
+        transfer_id = str(uuid.uuid4())
+        directory_filename = f"{username}.json"
 
-    ssl_connect_sock.sendall(serialize(response))
+        # 直接调用 send_large_data 发送通讯录
+        success = send_large_data(
+            ssl_connect_sock = ssl_connect_sock,
+            username = msg.username,
+            file_type = "directory",
+            file_name = directory_filename,
+            id = transfer_id
+        )
+        print("I'm in send directory")
+        if success:
+            print(f"[服务器日志] 已为 '{username}' 启动通讯录传输。")
+        else:
+            print(f"[服务器错误] 启动通讯录传输失败。")
+        
+        # 此函数自己处理发送，返回 None
+        return None
 
-    send_large_data(
-        ssl_connect_sock = ssl_connect_sock,
-        username = msg.username,
-        file_type = "directory",
-        file_name = f"data/directory/{msg.username}.json",
-        id = response.transfer_id
-    )
-    print("I'm in send directory")
-
+    except Exception as e:
+        print(f"[服务器错误] 处理 'GetDirectory' 请求时出错: {e}")
+        return None
 # def handle_get_history(msg: S.GetHistoryMsg):
 #     print("I'm in get history")
 #     pass
-
 def handle_get_public_key(msg: S.GetPublicKeyMsg, ssl_connect_sock: ssl.SSLSocket):
-    request = msg.request_name
-    target = msg.target_name
+    # *** 修正 #4: 此函数不应发送一个 PublicKeyMsg，它应该只启动文件传输 ***
+    # 服务器的职责是响应 GetPublicKeyMsg，然后直接开始发送文件。
+    # 客户端的后台线程或特定函数会接收这个文件流。
     
-    id = str(uuid.uuid4())
-    response = S.PublicKeyMsg(
-        request_name = request,
-        target_name = target,
-        public_key = "",
-        transfer_id = id,
-        time = int(time.time())
-    )
-
-    ssl_connect_sock.sendall(serialize(response))
+    requester_name = msg.request_name
+    target_name = msg.target_name
+    print(f"[服务器日志] 用户 '{requester_name}' 请求 '{target_name}' 的公钥。")
+    
     try: 
-        cert_filename = f"{target}_cert.pem"
-        pk = send_large_data(
+        transfer_id = str(uuid.uuid4())
+        cert_filename = f"{target_name}_cert.pem"
+        
+        # 直接调用 send_large_data 开始传输
+        success = send_large_data(
             ssl_connect_sock = ssl_connect_sock,
-            username = target,
+            username = target_name, # 公钥属于 target_name
             file_type = "publickey",
             file_name = cert_filename,
-            id = id
+            id = transfer_id
         )
-        if pk:
-            print(f"[服务器日志] 成功发送公钥给 {request}。")
+        if success:
+            print(f"[服务器日志] 已成功为 '{requester_name}' 启动 '{target_name}' 的公钥传输。")
         else:
-            print(f"[服务器错误] 发送公钥给 {request} 失败。")
+            print(f"[服务器错误] 为 '{requester_name}' 启动公钥传输失败。")
+            
     except Exception as e:
         print(f"[服务器错误] 处理发送公钥时出错: {e}")
-
-# def handle_alive(msg: S.AliveMsg):
-#     print("I'm in update alive")
-#     pass
-
-# def handle_backup(msg: S.BackupMsg):
-#     print("I'm in backup history")
-#     pass
-
+    
+    # 该函数自己处理发送，返回 None
+    return None
 

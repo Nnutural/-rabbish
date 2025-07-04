@@ -15,10 +15,6 @@ import threading
 ip_port = ("", 47474)
 
 def msg_process(ssl_connect_sock):
-    """
-    处理来自单个客户端的一条消息。
-    这个函数保持完全不变。
-    """
     try:
         user_ip, user_port = ssl_connect_sock.getpeername()
         print("user_ip", user_ip)
@@ -28,52 +24,43 @@ def msg_process(ssl_connect_sock):
             print("客户端已断开连接。")
             return None
 
-        # --- 登录请求是特例，因为它需要发送分包数据，在处理函数内部发送 ---
-        if received_msg.tag.name == "Login": # 注意：你的schema里是LoginMsg
-            # handle_login 会自己处理发送逻辑，因为它包含大文件传输
-            T.handle_login(received_msg, user_ip, user_port, ssl_connect_sock)
-            return True # 即使登录失败，连接也保持
+        if received_msg.tag.name == "Login":
+            T.handle_login(received_msg, user_ip, user_port, ssl_connect_sock)        
+        
+        elif received_msg.tag.name == "Register":
+            reply_msg = T.handle_register(received_msg, ssl_connect_sock)           
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
-        # --- 其他请求，服务器处理后统一返回响应 ---
-        reply_msg = None
-        if received_msg.tag.name == "Register": # 注意：你的schema里是RegisterMsg
-            reply_msg = T.handle_register(received_msg)
-            
         elif received_msg.tag.name == "Logout":
-            reply_msg = T.handle_logout(received_msg)
+            reply_msg = T.handle_logout(received_msg)   
+            ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "GetDirectory":
-            reply_msg = T.handle_send_directory(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+            T.handle_send_directory(received_msg, ssl_connect_sock)
 
-        elif received_msg.tag.name == "GetHistory":
-            reply_msg = T.handle_get_history(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+        # elif received_msg.tag.name == "GetHistory":
+        #     reply_msg = T.handle_get_history(received_msg)
+        #     ssl_connect_sock.sendall(serialize(reply_msg))
 
         elif received_msg.tag.name == "GetPublicKey":
-            reply_msg = T.handle_get_public_key(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+            T.handle_get_public_key(received_msg, ssl_connect_sock)
 
-        elif received_msg.tag.name == "Alive":
-            reply_msg = T.handle_alive(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+        # elif received_msg.tag.name == "Alive":
+        #     reply_msg = T.handle_alive(received_msg)
+        #     ssl_connect_sock.sendall(serialize(reply_msg))
 
-        elif received_msg.tag.name == "BackUp":
-            reply_msg = T.handle_backup(received_msg)
-            ssl_connect_sock.sendall(serialize(reply_msg))
+        # elif received_msg.tag.name == "BackUp":
+        #     reply_msg = T.handle_backup(received_msg)
+        #     ssl_connect_sock.sendall(serialize(reply_msg))
 
-        # 如果生成了回复消息，就发送它
-        if reply_msg:
-            ssl_connect_sock.sendall(serialize(reply_msg))
-
-        return True # 表示连接应保持
+        return True
 
     except ConnectionResetError:
-        # 这是客户端强制关闭连接的正常情况
+        print("客户端连接被重置。")
         return None
     except Exception as e:
-        print(f"处理消息时发生错误: {e}")
-        return None
+        print(f"发生错误: {e}")
+        return None     
 
 def client_handler(connect_sock, address, context):
     """

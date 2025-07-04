@@ -14,8 +14,73 @@ import Contacts as C
 from typing import Dict, Any, Union
 import Transaction_Server as T
 import uuid
-
+CHUNK_SIZE = 4096
 active_transfers = {} # 用于存储当前正在接收的文件传输信息
+
+
+def send_large_data_p2p(p2p_sock: ssl.SSLSocket, current_user: str, file_type: str, file_name: str):
+    """
+    (客户端P2P版本) 将本地文件分块发送给对端客户端。
+    """
+    filepath = ""
+    try:
+        base_dir = os.path.join('user', current_user)
+        if file_type == 'image':
+            filepath = os.path.join(base_dir, 'image', file_name)
+        elif file_type == 'audio':
+            filepath = os.path.join(base_dir, 'audio', file_name)
+        elif file_type == 'file':
+            filepath = os.path.join(base_dir, 'file', file_name)
+        else:
+            print(f"[P2P 发送错误] 不支持的文件类型: {file_type}")
+            return False
+
+        with open(filepath, 'rb') as f:
+            data_bytes = f.read()
+
+    except FileNotFoundError:
+        print(f"[P2P 发送错误] 文件未找到: {filepath}")
+        return False
+    except Exception as e:
+        print(f"[P2P 发送错误] 读取文件时出错: {e}")
+        return False
+
+    transfer_id = str(uuid.uuid4())
+    try:
+        total_size = len(data_bytes)
+        total_chunks = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
+
+        start_msg = S.StartTransferMsg(
+            transfer_id=transfer_id, file_type=file_type, file_name=file_name,
+            total_size=total_size, total_chunks=total_chunks, chunk_size=CHUNK_SIZE
+        )
+        p2p_sock.sendall(serialize(start_msg))
+        print(f"[P2P 发送] 开始传输 '{file_name}'...")
+
+        for i in range(total_chunks):
+            start = i * CHUNK_SIZE
+            end = start + CHUNK_SIZE
+            data_chunk = data_bytes[start:end]
+            encoded_chunk_str = base64.b64encode(data_chunk).decode('ascii')
+            
+            chunk_msg = S.DataChunkMsg(
+                transfer_id=transfer_id, chunk_index=i, data=encoded_chunk_str
+            )
+            p2p_sock.sendall(serialize(chunk_msg))
+        
+        end_msg = S.EndTransferMsg(transfer_id=transfer_id, status='success')
+        p2p_sock.sendall(serialize(end_msg))
+        print(f"[P2P 发送] 传输 '{file_name}' 完成。")
+        return True
+
+    except (BrokenPipeError, ConnectionResetError):
+        print(f"\n[P2P 发送错误] 连接中断，传输 '{file_name}' 失败。")
+        return False
+    except Exception as e:
+        print(f"\n[P2P 发送错误] 传输 '{file_name}' 失败: {e}")
+        return False
+
+# --- P2P Message Sending Handlers ---
 
 def recv_msg(ssl_connect_sock):
     try:
@@ -336,24 +401,47 @@ def handle_logout(ssl_connect_sock, current_user):
 
 # User to Client to Server : when login success
 def handle_get_directory(ssl_connect_sock, current_user):
-    get_directory_msg = S.GetDirectoryMsg(
-        username = current_user, 
-        time = int(time.time()))
+    """(前台手动调用) 向服务器请求并接收最新的通讯录。"""
+    if not current_user:
+        print("[错误] 未登录，无法获取通讯录。")
+        return False
+        
+    try:
+        # 1. 发送请求
+        get_dir_msg = S.GetDirectoryMsg(username=current_user)
+        ssl_connect_sock.sendall(serialize(get_dir_msg))
+        
+        # 2. 等待服务器的 StartTransferMsg
+        response = recv_msg(ssl_connect_sock)
+        if isinstance(response, S.StartTransferMsg) and response.file_type == 'directory':
+            # 3. 如果是正确的开始信号，调用 recv_large_data 处理后续传输
+            recv_large_data(ssl_connect_sock, response.transfer_id, current_user)
+            return True
+        else:
+            print(f"[错误] 请求通讯录后收到意外的服务器响应: {type(response)}")
+            return False
+            
+    except Exception as e:
+        print(f"获取通讯录时出错: {e}")
+        return False
+    # get_directory_msg = S.GetDirectoryMsg(
+    #     username = current_user, 
+    #     time = int(time.time()))
 
-    ssl_connect_sock.sendall(serialize(get_directory_msg))
+    # ssl_connect_sock.sendall(serialize(get_directory_msg))
 
-    received_msg = recv_msg(ssl_connect_sock)
-    if received_msg is None:
-        print("服务器端已断开连接。")
-        return None
+    # received_msg = recv_msg(ssl_connect_sock)
+    # if received_msg is None:
+    #     print("服务器端已断开连接。")
+    #     return None
 
-    if received_msg.tag.name == "Directory" and received_msg.username == current_user:
-        transfer_id = received_msg.transfer_id
-        recv_large_data(ssl_connect_sock, transfer_id, current_user)
+    # if received_msg.tag.name == "Directory" and received_msg.username == current_user:
+    #     transfer_id = received_msg.transfer_id
+    #     recv_large_data(ssl_connect_sock, transfer_id, current_user)
 
-        return True ## 去实现一个计时器，如果收到消息，则返回True，否则返回False
+    #     return True ## 去实现一个计时器，如果收到消息，则返回True，否则返回False
 
-    return None
+    # return None
 
 
 # User to Client to Server
@@ -417,81 +505,28 @@ def handle_send_message(ssl_connect_sock, msg: S.MessageMsg):
         print("\n[Chat] Connection lost while trying to send.")
         return False
 
-def handle_send_voice(ssl_connect_sock, current_user, peer_name, file_name):
-    """处理发送语音文件的请求，使用分块传输协议。"""
-    try:
-        id = str(uuid.uuid4())
-
-        send_voice_msg = S.VoiceMsg(
-            voice_id = id,
-            sender_name = current_user,
-            receiver_name = peer_name,
-            data = b"",
-            time = int(time.time())
-        )
-
-        ssl_connect_sock.sendall(serialize(send_voice_msg))
-
-
-        # 调用P2P大文件发送函数
-        T.send_large_data(
-            ssl_connect_sock, 
-            current_user, 
-            'audio', 
-            file_name, 
-            id
-        )
-
-    except Exception as e:
-        print(f"发送语音时出错: {e}")
+# *** 修正 #6: 重写P2P文件发送处理函数，使其正确且独立 ***
+def handle_send_voice(p2p_sock, current_user, file_name):
+    """(P2P) 处理发送语音文件的请求，使用分块传输协议。"""
+    if not file_name:
+        print("文件名不能为空。")
         return False
+    print("==== 准备发送语音... ====")
+    # 调用新的P2P专用发送函数
+    return send_large_data_p2p(p2p_sock, current_user, 'audio', file_name)
 
-def handle_send_file(ssl_connect_sock, current_user, peer_name, file_name):
-    try:
-        id = str(uuid.uuid4())
-        send_file_msg = S.FileMsg(
-            file_id = id,
-            sender_name = current_user,
-            receiver_name = peer_name,
-            file_name = file_name,
-            data = b"",
-            time = int(time.time())
-        )
-
-        ssl_connect_sock.sendall(serialize(send_file_msg))
-        T.send_large_data(
-            ssl_connect_sock, 
-            current_user, 
-            'file', 
-            file_name, 
-            id
-        )
-
-    except (BrokenPipeError, ConnectionResetError):
+def handle_send_file(p2p_sock, current_user, file_name):
+    """(P2P) 处理发送通用文件的请求。"""
+    if not file_name:
+        print("文件名不能为空。")
         return False
-    
+    print("==== 准备发送文件... ====")
+    return send_large_data_p2p(p2p_sock, current_user, 'file', file_name)
 
-def handle_send_image(ssl_connect_sock, current_user, peer_name, file_name):
-    try:
-        id = str(uuid.uuid4())
-        send_image_msg = S.ImageMsg(
-            picture_id = id,
-            sender_name = current_user,
-            receiver_name = peer_name,
-            data = b"",
-            time = int(time.time())
-        )
-
-        ssl_connect_sock.sendall(serialize(send_image_msg))
-
-        T.send_large_data(
-            ssl_connect_sock, 
-            current_user, 
-            'image', 
-            file_name, 
-            id
-        )
-
-    except (BrokenPipeError, ConnectionResetError):
+def handle_send_image(p2p_sock, current_user, file_name):
+    """(P2P) 处理发送图片文件的请求。"""
+    if not file_name:
+        print("文件名不能为空。")
         return False
-  
+    print("==== 准备发送图片... ====")
+    return send_large_data_p2p(p2p_sock, current_user, 'image', file_name)

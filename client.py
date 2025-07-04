@@ -17,7 +17,9 @@ CLIENT_CERT_FILE = "client.crt"
 CLIENT_KEY_FILE = "client_rsa_private.pem.unsecure"
 current_user = None
 user_id = None
-
+directory_update_event = threading.Event()
+DIRECTORY_UPDATE_INTERVAL = 30 # 每30秒更新一次通讯录
+server_socket_lock = threading.Lock()
 def bind_to_free_port():
     """
     创建一个socket并绑定到一个由操作系统自动分配的空闲端口。
@@ -42,6 +44,41 @@ def bind_to_free_port():
         print(f"无法绑定到空闲端口: {e}")
         return None, None
 
+def periodic_directory_updater(ssl_sock, stop_event: threading.Event):
+    global current_user
+    print(f"[后台同步] 通讯录自动更新线程已启动 (每 {DIRECTORY_UPDATE_INTERVAL} 秒一次)。")
+    while not stop_event.is_set():
+        try:
+            if current_user:
+                # *** 使用锁来确保同一时间只有一个线程在使用socket ***
+                with server_socket_lock:
+                    print(f"[后台同步] 正在为 '{current_user}' 请求通讯录更新...")
+                    # 发送请求
+                    get_dir_msg = S.GetDirectoryMsg(username=current_user)
+                    ssl_sock.sendall(serialize(get_dir_msg))
+                    
+                    # 接收响应
+                    response = T.recv_msg(ssl_sock)
+                
+                # 锁外处理，避免长时间占用
+                if isinstance(response, S.StartTransferMsg) and response.file_type == 'directory':
+                    print("[后台同步] 收到通讯录传输开始信号。")
+                    # 再次获取锁来完成整个文件传输
+                    with server_socket_lock:
+                        T.recv_large_data(ssl_sock, response.transfer_id, current_user)
+                    print(f"[后台同步] 通讯录更新完成。")
+                elif response:
+                    print(f"[后台同步] 警告：收到意外消息: {type(response)}")
+
+        except (ConnectionResetError, BrokenPipeError):
+            print("[后台同步] 连接断开，更新线程退出。")
+            break
+        except Exception as e:
+            print(f"[后台同步] 线程发生错误: {e}")
+        
+        stop_event.wait(DIRECTORY_UPDATE_INTERVAL)
+    
+    print("[后台同步] 通讯录自动更新线程已停止。")
 
 def msg_process(ssl_connect_sock):
     received_msg = T.recv_msg(ssl_connect_sock)
@@ -51,8 +88,9 @@ def msg_process(ssl_connect_sock):
 
 
 def User_evnets_process(ssl_connect_sock, current_user, user_id):
-    T.handle_get_directory(ssl_connect_sock, current_user) # update the directory from server
-    P.init_directory(ssl_connect_sock, current_user) # output the local directory
+    with server_socket_lock:
+        T.handle_get_directory(ssl_connect_sock, current_user)
+    P.init_directory(current_user) # output the local directory
     while True:
         choice = input("which friend do you want to send message to: ").strip()
         if choice == "exit":
@@ -62,7 +100,13 @@ def User_evnets_process(ssl_connect_sock, current_user, user_id):
         if choice == "logout":
             T.handle_logout(ssl_connect_sock, current_user)
             return "logout"
-        
+
+        if choice == "refresh":
+            print("正在手动刷新好友列表...")
+            T.handle_get_directory(ssl_connect_sock, current_user)
+            P.init_directory(current_user)
+            continue
+
         # if choice == "history":
         #     T.handle_get_history(ssl_connect_sock, current_user)
         #     continue
@@ -70,7 +114,7 @@ def User_evnets_process(ssl_connect_sock, current_user, user_id):
         if P.choose_friend(ssl_connect_sock, choice, current_user, user_id) is None: # 这一步会进入Chat
             return None
 
-        P.init_directory(ssl_connect_sock, current_user) # output the local directory
+        P.init_directory(current_user) # output the local directory
         
 
 def login_screen(ssl_connect_sock, my_p2p_port):
@@ -107,6 +151,9 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
         print("无法绑定到空闲端口，请检查网络连接。")
         return
 
+    # 初始化后台线程变量
+    updater_thread = None
+
     try:
         # --- MODIFICATION START ---
         # 使用新函数建立连接
@@ -134,7 +181,18 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
             if login_name and login_id:
                 current_user = login_name
                 user_id = login_id
+                P.MY_USERNAME = current_user
                 while True:
+                    # 启动后台通讯录更新线程
+                    directory_update_event.clear() # 重置事件标志
+                    updater_thread = threading.Thread(
+                        target=periodic_directory_updater,
+                        args=(ssl_connect_sock, directory_update_event),
+                        daemon=True
+                    )
+                    updater_thread.start()
+
+
                     user_action = User_evnets_process(ssl_connect_sock, current_user, user_id)
                     if user_action == "exit": # 如果用户选择退出，则退出循环
                         break
@@ -143,6 +201,7 @@ def boot(): # TO_DO 客户端首先要确定自己的端口
                         if login_name and login_id:
                             current_user = login_name
                             user_id = login_id
+                            P.MY_USERNAME = current_user
 
     except (ConnectionResetError, BrokenPipeError) as e:
         print(f"\n错误: 与服务器的连接已意外断开。({e})")
