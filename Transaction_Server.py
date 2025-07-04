@@ -235,8 +235,15 @@ def send_large_data(ssl_connect_sock, username: str, file_type: str, file_name: 
         return False
 
 # --- END OF MODIFICATION ---
-
-def update_friends_contact_status(username, status):
+def update_friends_contact_status(username: str, status: str, new_address: str):
+    """
+    更新所有好友通讯录中关于指定用户的状态和地址。
+    
+    Args:
+        username (str): 状态和地址发生改变的用户的名字。
+        status (str): 新的状态 ('online' or 'offline')。
+        new_address (str): 新的地址 (e.g., "127.0.0.1:11000") 或空字符串。
+    """
     directory_path = 'data/directory'
     for user_file in os.listdir(directory_path):
         if not user_file.endswith('.json'):
@@ -244,18 +251,27 @@ def update_friends_contact_status(username, status):
         filepath = os.path.join(directory_path, user_file)
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
+                # 加载整个通讯录文件数据
                 data = json.load(f)
+            
             contacts = data.get('contacts', [])
             updated = False
             for contact in contacts:
                 if contact.get('name') == username:
                     contact['status'] = status
+                    contact['address'] = new_address # 更新地址
                     updated = True
+                    break # 找到后即可退出内循环
+            
             if updated:
+                # 保存整个修改后的 data 对象，以保留 messages 等其他数据
                 with open(filepath, 'w', encoding='utf-8') as f:
-                    json.dump({'contacts': contacts}, f, indent=4, ensure_ascii=False)
+                    json.dump(data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"[通讯录同步错误] 更新 {filepath} 时出错: {e}")
+
+# --- MODIFICATION END ---
+
 
 '''
 这里将处理服务器端的事务，并返回结果给客户端
@@ -340,7 +356,7 @@ def handle_login(msg: S.LoginMsg, user_ip, user_port, ssl_connect_sock):
             2. 在好友的通讯录中，更新当前用户的状态
             3. 调用通讯录更新函数，向好友发送当前用户的状态
             '''
-            update_friends_contact_status(found_username, 'online')
+            update_friends_contact_status(found_username, 'online', user_record['address'])
             
             print(f"[服务器日志] 用户 '{found_username}' 验证成功。\n")
 
@@ -397,7 +413,7 @@ def handle_logout(msg: S.LogoutMsg):
         return None
     user_record['address'] = ""
     save_users_to_json("data/users.json", USER_LIST)
-    update_friends_contact_status(msg.username, 'offline')
+    update_friends_contact_status(msg.username, 'offline', '')
 
     print(f"[服务器日志] 用户 '{msg.username}' 注销成功。\n")
     response = S.SuccessLogoutMsg(username=msg.username, user_id=user_record['user_id'], time=int(time.time()))

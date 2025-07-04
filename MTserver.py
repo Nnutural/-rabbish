@@ -12,7 +12,7 @@ from serializer import serialize, deserialize
 import threading
 
 # 服务器IP和端口保持不变
-ip_port = ("", 47474)
+ip_port = ("10.122.233.244", 47474)
 
 def msg_process(ssl_connect_sock):
     try:

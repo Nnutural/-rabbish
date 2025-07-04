@@ -1,121 +1,109 @@
 {
-  "contacts": [
-    {
-      "id": 1,
-      "name": "admin",
-      "status": "online",
-      "time": "11:30",
-      "address": "10.21.168.38:13000"
-    },
-    {
-      "id": 2,
-      "name": "李四",
-      "status": "offline",
-      "time": "昨天",
-      "address": "127.0.0.1:10001"
-    },
-    {
-      "id": 3,
-      "name": "nnutural",
-      "status": "online",
-      "time": "周二",
-      "address": "127.0.0.1:10002"
-    },
-    {
-      "id": 4,
-      "name": "赵六",
-      "status": "online",
-      "time": "周一",
-      "address": "127.0.0.1:10003"
-    },
-    {
-      "id": 5,
-      "name": "陈七",
-      "status": "online",
-      "address": "127.0.0.1:10004"
-    },
-    {
-      "id": 6,
-      "name": "孙八",
-      "status": "offline",
-      "address": "127.0.0.1:10005"
-    },
-    {
-      "id": 7,
-      "name": "周九",
-      "status": "online",
-      "address": "127.0.0.1:10006"
-    }
-  ],
-  "messages": {
-    "1": [
-      {
-        "date": "2023年11月3日",
-        "messages": [
-          {
-            "sender": "contact",
-            "content": "嗨，周末的聚会计划定下来了吗？",
-            "time": "10:25"
-          },
-          {
-            "sender": "user",
-            "content": "还没呢，你有什么建议？",
-            "time": "10:26"
-          },
-          {
-            "sender": "contact",
-            "content": "我知道市中心新开了一家意大利餐厅，评价很不错",
-            "time": "10:27"
-          },
-          {
-            "sender": "user",
-            "content": "听起来很棒！具体地址和名字是？",
-            "time": "10:28"
-          },
-          {
-            "sender": "contact",
-            "content": "Bella Vita 意大利餐厅，在胜利路123号",
-            "time": "10:30"
-          },
-          {
-            "sender": "user",
-            "content": "太好了，我会通知其他人。晚上7点怎么样？",
-            "time": "10:32"
-          },
-          {
-            "sender": "contact",
-            "content": "没问题，周六见！",
-            "time": "10:33"
-          }
-        ]
-      },
-      {
-        "date": "今天",
-        "messages": [
-          {
-            "sender": "contact",
-            "content": "周末聚会在哪里见面？需要我发定位吗？",
-            "time": "10:45"
-          }
-        ]
-      }
+    "contacts": [
+        {
+            "id": 1,
+            "name": "admin",
+            "status": "online",
+            "time": "11:30",
+            "address": "10.21.168.38:8376"
+        },
+        {
+            "id": 2,
+            "name": "李四",
+            "status": "offline",
+            "time": "昨天",
+            "address": "127.0.0.1:10001"
+        },
+        {
+            "id": 3,
+            "name": "nnutural",
+            "status": "online",
+            "time": "周二",
+            "address": "127.0.0.1:10002"
+        },
+        {
+            "id": 4,
+            "name": "赵六",
+            "status": "online",
+            "time": "周一",
+            "address": "127.0.0.1:10003"
+        },
+        {
+            "id": 5,
+            "name": "陈七",
+            "status": "online",
+            "address": "127.0.0.1:10004"
+        },
+        {
+            "id": 6,
+            "name": "孙八",
+            "status": "offline",
+            "address": "127.0.0.1:10005"
+        },
+        {
+            "id": 7,
+            "name": "周九",
+            "status": "online",
+            "address": "127.0.0.1:10006"
+        }
     ],
-    "2": [
-      {
-        "date": "2023年11月2日",
-        "messages": [
-          {
-            "sender": "contact",
-            "content": "项目计划已经发给你了",
-            "time": "09:30"
-          },
-          {
-            "sender": "user",
-            "content": "收到，我下午看完给你反馈",
-            "time": "09:32"
-          }
+    "messages": {
+        "1": [
+            {
+                "date": "2025-07-04",
+                "messages": [
+                    {
+                        "sender": "contact",
+                        "content": "ndadad",
+                        "time": "11:11:24"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "sdad",
+                        "time": "11:11:24"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "",
+                        "time": "11:11:24"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "s",
+                        "time": "11:11:24"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "",
+                        "time": "11:11:24"
+                    },
+                    {
+                        "sender": "contact",
+                        "content": "AAAAA",
+                        "time": "11:11:24"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "nihoa",
+                        "time": "11:12:48"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "nihao",
+                        "time": "11:12:50"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "I'm your d",
+                        "time": "11:13:02"
+                    },
+                    {
+                        "sender": "user",
+                        "content": "neiokk",
+                        "time": "11:13:31"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
