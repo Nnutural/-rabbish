@@ -255,7 +255,7 @@ def handle_send_directory(sock, msg: S.GetDirectoryMsg):
 Generated python
 
 ```python
-# client.py
+# client_core.py
 
 # ...
 
